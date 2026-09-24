@@ -1,0 +1,6 @@
+{
+  "name": "病理数据检索与分析平台",
+  "description": "专业级病理切片多维智能检索、病理结构化数据分析与正常/病变组织二分类AI识别热力图分析系统",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
