@@ -7,7 +7,7 @@ import { PathologySample, PathologyFilterParams, ClassificationResult, HeatmapPo
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 const PORT = 3000;
 
 // Enable JSON parser with large payload support for high-res slide images (up to 50mb)
@@ -533,4 +533,8 @@ async function startServer() {
   });
 }
 
-startServer();
+// Netlify Functions imports the Express app directly. Start a long-running
+// server only for local development or a traditional Node deployment.
+if (process.env.NETLIFY !== 'true') {
+  startServer();
+}
