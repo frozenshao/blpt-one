@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -13,19 +13,157 @@ import {
   Filter, 
   Activity
 } from 'lucide-react';
-import { BACKGROUND_LESIONS_DATA } from '../../data/toxicologyStatsData';
+import { BACKGROUND_LESIONS_DATA, BackgroundLesionItem } from '../../data/toxicologyStatsData';
 
-export const BackgroundLesionsSection: React.FC = () => {
+interface BackgroundLesionsSectionProps {
+  projectId?: string;
+}
+
+export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> = ({ projectId = 'all' }) => {
   const [selectedSpecies, setSelectedSpecies] = useState<string>('全部品系');
-  const [selectedOrgan, setSelectedOrgan] = useState<string>('全部器官');
+  const [selectedOrgan, setSelectedOrgan] = useState<string>('全部脏器');
+
+  // Sync selected species and organ when project changes
+  useEffect(() => {
+    setSelectedSpecies('全部品系');
+    setSelectedOrgan('全部脏器');
+  }, [projectId]);
+
+  // Project-adaptive baseline data (随选中项目动态联动统计值)
+  const currentDataset = useMemo(() => {
+    if (projectId === 'exp-2026001') {
+      // 试验编号-2026001 (小鼠长毒研究: C57BL/6J 小鼠对照组阴性背景数据)
+      const projectMouseData: BackgroundLesionItem[] = [
+        {
+          id: 'bg-p1-1',
+          species: 'C57BL/6 小鼠',
+          organ: '肝脏',
+          lesionName: '肝脏小肉芽肿',
+          maleRate: 10.0,
+          maleCountStr: '2/20',
+          femaleRate: 5.0,
+          femaleCountStr: '1/20',
+          hcdRange: '5.0% ~ 15.0%',
+          clinicalSignificance: '溶媒对照组自发背景',
+          remark: '本试验对照组偶发性微肉芽肿基线，无毒理学意义。'
+        },
+        {
+          id: 'bg-p1-2',
+          species: 'C57BL/6 小鼠',
+          organ: '肝脏',
+          lesionName: '局灶性单个核细胞浸润',
+          maleRate: 15.0,
+          maleCountStr: '3/20',
+          femaleRate: 10.0,
+          femaleCountStr: '2/20',
+          hcdRange: '8.0% ~ 20.0%',
+          clinicalSignificance: '小鼠常见自发背景',
+          remark: '门管区及小叶内生理性轻微炎细胞散在分布。'
+        },
+        {
+          id: 'bg-p1-3',
+          species: 'C57BL/6 小鼠',
+          organ: '肺脏',
+          lesionName: '肺泡巨噬细胞聚集',
+          maleRate: 10.0,
+          maleCountStr: '2/20',
+          femaleRate: 5.0,
+          femaleCountStr: '1/20',
+          hcdRange: '5.0% ~ 12.0%',
+          clinicalSignificance: '肺组织生理清除反应',
+          remark: '肺泡腔偶见巨噬细胞灶性蓄积，属正常自发性改变。'
+        },
+        {
+          id: 'bg-p1-4',
+          species: 'C57BL/6 小鼠',
+          organ: '脾脏',
+          lesionName: '髓外造血',
+          maleRate: 20.0,
+          maleCountStr: '4/20',
+          femaleRate: 15.0,
+          femaleCountStr: '3/20',
+          hcdRange: '12.0% ~ 25.0%',
+          clinicalSignificance: '小鼠正常造血基线',
+          remark: '红髓巨核细胞及幼红细胞局灶增多，为小鼠正常生理表现。'
+        }
+      ];
+      return projectMouseData;
+    } else if (projectId === 'exp-2026002') {
+      // 试验编号-2026002 (重复给药毒性: SD 大鼠对照组阴性背景数据)
+      const projectRatData: BackgroundLesionItem[] = [
+        {
+          id: 'bg-p2-1',
+          species: 'SD 大鼠',
+          organ: '肝脏',
+          lesionName: '肝脏小肉芽肿',
+          maleRate: 13.3,
+          maleCountStr: '2/15',
+          femaleRate: 6.7,
+          femaleCountStr: '1/15',
+          hcdRange: '5.0% ~ 18.0%',
+          clinicalSignificance: '大鼠溶媒对照自发背景',
+          remark: '肝实质内孤立性巨噬细胞小肉芽肿，与给药无关。'
+        },
+        {
+          id: 'bg-p2-2',
+          species: 'SD 大鼠',
+          organ: '肾脏',
+          lesionName: '肾小管嗜碱性变',
+          maleRate: 20.0,
+          maleCountStr: '3/15',
+          femaleRate: 13.3,
+          femaleCountStr: '2/15',
+          hcdRange: '15.0% ~ 30.0%',
+          clinicalSignificance: '雄性老龄自发慢性肾病变',
+          remark: '皮质远端肾小管散在嗜碱性变，为大鼠老龄自发慢性肾病早期基线。'
+        },
+        {
+          id: 'bg-p2-3',
+          species: 'SD 大鼠',
+          organ: '心肌',
+          lesionName: '心肌单个核细胞浸润',
+          maleRate: 13.3,
+          maleCountStr: '2/15',
+          femaleRate: 6.7,
+          femaleCountStr: '1/15',
+          hcdRange: '8.0% ~ 18.0%',
+          clinicalSignificance: '大鼠自发心肌病早期',
+          remark: '心室肌间质局灶性微小单个核细胞浸润。'
+        },
+        {
+          id: 'bg-p2-4',
+          species: 'SD 大鼠',
+          organ: '脑/垂体',
+          lesionName: '垂体前叶局灶性囊肿',
+          maleRate: 6.7,
+          maleCountStr: '1/15',
+          femaleRate: 13.3,
+          femaleCountStr: '2/15',
+          hcdRange: '3.0% ~ 12.0%',
+          clinicalSignificance: '胚胎发育生理残余',
+          remark: 'Rathke囊残余扩展形成的局灶上皮性微囊。'
+        }
+      ];
+      return projectRatData;
+    }
+    // 全部 (全库历史对照控制基线 HCD)
+    return BACKGROUND_LESIONS_DATA;
+  }, [projectId]);
 
   // Filter items
-  const speciesList = ['全部品系', 'SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠'];
-  const organList = ['全部器官', '肝脏', '肾脏', '心肌', '肺脏', '脾脏', '脑/垂体'];
+  const speciesList = projectId === 'all' 
+    ? ['全部品系', 'SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠']
+    : projectId === 'exp-2026001'
+    ? ['全部品系', 'C57BL/6 小鼠']
+    : ['全部品系', 'SD 大鼠'];
 
-  const filteredData = BACKGROUND_LESIONS_DATA.filter(item => {
+  const organList = useMemo(() => {
+    return ['全部脏器', ...Array.from(new Set(currentDataset.map(item => item.organ)))];
+  }, [currentDataset]);
+
+  const filteredData = currentDataset.filter(item => {
     if (selectedSpecies !== '全部品系' && item.species !== selectedSpecies) return false;
-    if (selectedOrgan !== '全部器官' && item.organ !== selectedOrgan) return false;
+    if (selectedOrgan !== '全部脏器' && item.organ !== selectedOrgan) return false;
     return true;
   });
 
@@ -84,11 +222,11 @@ export const BackgroundLesionsSection: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs text-slate-600">
-            <span className="font-medium text-slate-500">器官:</span>
+            <span className="font-medium text-slate-500">脏器:</span>
             <select
               value={selectedOrgan}
               onChange={(e) => setSelectedOrgan(e.target.value)}
-              aria-label="筛选病理器官类型"
+              aria-label="筛选病理脏器类型"
               className="bg-transparent font-medium text-slate-800 focus:outline-hidden cursor-pointer"
             >
               {organList.map(o => (
@@ -156,7 +294,7 @@ export const BackgroundLesionsSection: React.FC = () => {
             <thead className="bg-slate-100/70 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-2.5 px-3">动物品系</th>
-                <th className="py-2.5 px-3">靶器官</th>
+                <th className="py-2.5 px-3">脏器</th>
                 <th className="py-2.5 px-3">背景病变名称</th>
                 <th className="py-2.5 px-3">雄性动物发生率</th>
                 <th className="py-2.5 px-3">雌性动物发生率</th>

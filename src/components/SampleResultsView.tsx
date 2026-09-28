@@ -60,7 +60,7 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
           </div>
           <p className="text-sm font-semibold text-slate-800">未找到符合当前多维组合条件的病理样本</p>
           <p className="text-xs text-slate-500 max-w-md">
-            请尝试调整器官类型、病变名称或扩大周龄范围；或点击顶部的“重置条件”查看全部数据。
+            请尝试调整脏器类型、病变名称或扩大周龄范围；或点击顶部的“重置条件”查看全部数据。
           </p>
         </div>
       ) : (
@@ -73,7 +73,7 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                 <th className="py-3 px-4 sticky left-0 z-20 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200/80 min-w-[220px] whitespace-nowrap">
                   样本编号
                 </th>
-                <th className="py-3 px-3 min-w-[110px]">器官/切片</th>
+                <th className="py-3 px-3 min-w-[110px]">脏器/切片</th>
                 {/* 表头修改为“病变名称/分布” */}
                 <th className="py-3 px-3 min-w-[140px]">病变名称/分布</th>
                 {/* 病理诊断 单独为一列 */}

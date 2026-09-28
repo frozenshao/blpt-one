@@ -165,7 +165,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
             type="text"
             value={filters.keyword || ''}
             onChange={(e) => onFilterChange({ ...filters, keyword: e.target.value, page: 1 })}
-            placeholder="快速搜索样本编号、器官、病变名称"
+            placeholder="快速搜索样本编号、脏器、病变名称"
             className="w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
           />
           {filters.keyword && (
@@ -249,14 +249,14 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-slate-800 flex items-center gap-1.5">
                 <HeartPulse className="w-3.5 h-3.5 text-blue-600" />
-                器官 / 组织类型：
+                脏器类型：
               </span>
               {filters.organs && filters.organs.length > 0 && (
                 <button
                   onClick={() => onFilterChange({ ...filters, organs: undefined, page: 1 })}
                   className="text-[11px] text-blue-600 hover:underline"
                 >
-                  清除已选器官 ({filters.organs.length})
+                  清除已选脏器 ({filters.organs.length})
                 </button>
               )}
             </div>

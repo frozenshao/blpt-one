@@ -11,35 +11,63 @@ import {
 import { 
   GitCompare, 
   Filter, 
-  TrendingUp
+  TrendingUp,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { STRAIN_COMPARISON_DATA } from '../../data/toxicologyStatsData';
 
 export const CrossStrainSection: React.FC = () => {
-  const [selectedStrain1, setSelectedStrain1] = useState<string>('全部品系');
-  const [selectedStrain2, setSelectedStrain2] = useState<string>('全部品系');
+  const availableStrains = ['SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠'];
+  const [selectedStrains, setSelectedStrains] = useState<string[]>(['SD 大鼠', 'Wistar 大鼠']);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [selectedLesion, setSelectedLesion] = useState<string>('全部病变');
   const [selectedGender, setSelectedGender] = useState<string>('全部性别');
 
-  const strainOptions = ['全部品系', 'SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠'];
+  const lesionOptions = [
+    '全部病变',
+    '肝脏小肉芽肿',
+    '肾小管嗜碱性变',
+    '肝细胞脂肪变性',
+    '间质炎性细胞浸润',
+    '心肌单个核细胞浸润',
+    '垂体前叶局灶性增生/囊肿'
+  ];
+
+  const handleToggleStrain = (strain: string) => {
+    if (selectedStrains.includes(strain)) {
+      if (selectedStrains.length > 1) {
+        setSelectedStrains(selectedStrains.filter(s => s !== strain));
+      }
+    } else {
+      if (selectedStrains.length < 2) {
+        setSelectedStrains([...selectedStrains, strain]);
+      } else {
+        // Keep 2 by replacing the older one
+        setSelectedStrains([selectedStrains[1], strain]);
+      }
+    }
+  };
 
   const filteredData = STRAIN_COMPARISON_DATA.filter(item => {
-    // Strain 1 filter
-    if (selectedStrain1 !== '全部品系') {
-      const match1 = item.strainA.name === selectedStrain1 || item.strainB.name === selectedStrain1;
-      if (!match1) return false;
+    // 1. Strain filter (two selected strains in single box)
+    if (selectedStrains.length === 2) {
+      const hasA = item.strainA.name === selectedStrains[0] || item.strainB.name === selectedStrains[0];
+      const hasB = item.strainA.name === selectedStrains[1] || item.strainB.name === selectedStrains[1];
+      if (!hasA || !hasB) return false;
+    } else if (selectedStrains.length === 1) {
+      const hasA = item.strainA.name === selectedStrains[0] || item.strainB.name === selectedStrains[0];
+      if (!hasA) return false;
     }
-    // Strain 2 filter
-    if (selectedStrain2 !== '全部品系') {
-      const match2 = item.strainA.name === selectedStrain2 || item.strainB.name === selectedStrain2;
-      if (!match2) return false;
+
+    // 2. Lesion Name Filter
+    if (selectedLesion !== '全部病变') {
+      if (!item.lesionName.includes(selectedLesion)) return false;
     }
-    // If both strains are specified and distinct, ensure they match the pair
-    if (selectedStrain1 !== '全部品系' && selectedStrain2 !== '全部品系' && selectedStrain1 !== selectedStrain2) {
-      const isPair = (item.strainA.name === selectedStrain1 && item.strainB.name === selectedStrain2) ||
-                     (item.strainA.name === selectedStrain2 && item.strainB.name === selectedStrain1);
-      if (!isPair) return false;
-    }
+
+    // 3. Gender Filter
     if (selectedGender !== '全部性别' && item.gender !== selectedGender) return false;
+
     return true;
   });
 
@@ -84,35 +112,81 @@ export const CrossStrainSection: React.FC = () => {
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* 品系 1 */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs text-slate-600">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-medium text-slate-500">品系 1:</span>
-            <select
-              value={selectedStrain1}
-              onChange={(e) => setSelectedStrain1(e.target.value)}
-              aria-label="筛选对比品系 1"
-              className="bg-transparent font-medium text-slate-800 focus:outline-hidden cursor-pointer"
+          {/* 品系的选择在一个框中选择2个品种 */}
+          <div className="relative">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsDropdownOpen(!isDropdownOpen); }}
+              className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs text-slate-700 cursor-pointer hover:border-slate-300 transition-colors"
             >
-              {strainOptions.map(s => (
-                <option key={`s1-${s}`} value={s}>{s}</option>
-              ))}
-            </select>
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-medium text-slate-500">品系:</span>
+              <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                {selectedStrains.length === 2 ? `${selectedStrains[0]} vs ${selectedStrains[1]}` : (selectedStrains[0] || '选择品系')}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+
+            {isDropdownOpen && (
+              <div className="absolute z-20 top-full mt-1.5 left-0 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-2.5 space-y-2">
+                <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between pb-1 border-b border-slate-100">
+                  <span>选择 2 个对比品系</span>
+                  <span className="text-blue-600 font-bold">{selectedStrains.length}/2</span>
+                </div>
+                <div className="space-y-1">
+                  {availableStrains.map(strain => {
+                    const isChecked = selectedStrains.includes(strain);
+                    return (
+                      <div 
+                        key={strain}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleToggleStrain(strain)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleStrain(strain); }}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                          isChecked ? 'bg-blue-50 text-blue-800 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            readOnly
+                            className="rounded text-blue-600 focus:ring-blue-500 pointer-events-none"
+                          />
+                          <span>{strain}</span>
+                        </div>
+                        {isChecked && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-1.5 border-t border-slate-100 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 cursor-pointer"
+                  >
+                    完成
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <span className="text-slate-400 font-bold text-xs">vs</span>
-
-          {/* 品系 2 */}
+          {/* 增加病变名称筛选条件 */}
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs text-slate-600">
-            <span className="font-medium text-slate-500">品系 2:</span>
+            <span className="font-medium text-slate-500">病变名称:</span>
             <select
-              value={selectedStrain2}
-              onChange={(e) => setSelectedStrain2(e.target.value)}
-              aria-label="筛选对比品系 2"
+              value={selectedLesion}
+              onChange={(e) => setSelectedLesion(e.target.value)}
+              aria-label="筛选病变名称"
               className="bg-transparent font-medium text-slate-800 focus:outline-hidden cursor-pointer"
             >
-              {strainOptions.map(s => (
-                <option key={`s2-${s}`} value={s}>{s}</option>
+              {lesionOptions.map(l => (
+                <option key={l} value={l}>{l}</option>
               ))}
             </select>
           </div>
@@ -192,12 +266,11 @@ export const CrossStrainSection: React.FC = () => {
             <thead className="bg-slate-100/70 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-2.5 px-3" style={{ width: '3cm', minWidth: '3cm' }}>病变名称</th>
-                <th className="py-2.5 px-3">靶器官</th>
+                <th className="py-2.5 px-3">脏器</th>
                 <th className="py-2.5 px-3">动物性别</th>
                 <th className="py-2.5 px-3">品系 A 及发生率</th>
                 <th className="py-2.5 px-3">品系 B 及发生率</th>
                 <th className="py-2.5 px-3">发生率比值</th>
-                <th className="py-2.5 px-3">统计学显著性 (P值)</th>
                 <th className="py-2.5 px-3" style={{ width: '5cm', minWidth: '5cm' }}>病理学比较结论</th>
               </tr>
             </thead>
@@ -230,11 +303,6 @@ export const CrossStrainSection: React.FC = () => {
                   </td>
                   <td className="py-2.5 px-3 font-mono font-bold text-indigo-700 whitespace-nowrap">
                     {item.rateRatio}
-                  </td>
-                  <td className="py-2.5 px-3 font-mono whitespace-nowrap">
-                    <span className={item.pValue.includes('*') ? 'text-rose-600 font-bold' : 'text-slate-500'}>
-                      {item.pValue}
-                    </span>
                   </td>
                   <td 
                     className="py-2.5 px-3 text-slate-500 text-[11px]" 

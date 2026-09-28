@@ -225,7 +225,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
       </div>
 
       {/* 3. 背景性病变统计模块 (Always Shown as Requested: 雄性SD大鼠，病变-肝脏小肉芽肿，发生率XX。雌性的发生率X) */}
-      <BackgroundLesionsSection />
+      <BackgroundLesionsSection projectId={selectedProjectId} />
 
       {/* 4. “研究项目”选中某一个具体项目时，增加显示“各类病变统计”模块 */}
       {selectedProjectId !== 'all' && (
@@ -244,7 +244,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
           <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
             <HeartPulse className="w-4 h-4 text-blue-600" />
             <span>
-              {selectedProjectId === 'all' ? '器官 / 组织类型样本分布统计' : `${currentProject.name} · 受检靶器官分布`}
+              脏器样本分布统计
             </span>
           </h3>
           <div className="h-64">
@@ -264,7 +264,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
           <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
             <span>
-              {selectedProjectId === 'all' ? '正常组织 vs 病变组织二分类比例' : `${currentProject.name} · 正常 vs 病变阳性构成`}
+              正常组织 vs 病变组织二分类比例
             </span>
           </h3>
           <div className="h-64">
@@ -295,7 +295,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
           <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
             <Dna className="w-4 h-4 text-indigo-600" />
             <span>
-              {selectedProjectId === 'all' ? '样本来源动物种属与品系构成' : `${currentProject.name} · 受试动物品系信息`}
+              样本来源动物种属与品系构成
             </span>
           </h3>
           <div className="h-64">
