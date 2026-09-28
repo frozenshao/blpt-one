@@ -12,7 +12,8 @@ import {
   Layers,
   HeartPulse,
   Tag,
-  Filter
+  Filter,
+  FlaskConical
 } from 'lucide-react';
 import { 
   OrganType, 
@@ -144,6 +145,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
 
   const activeFiltersCount = 
     (filters.keyword ? 1 : 0) +
+    (filters.projectName && filters.projectName !== '全部' ? 1 : 0) +
     (filters.organs?.length || 0) +
     (filters.sliceTypes?.length || 0) +
     (filters.isLesionFilter && filters.isLesionFilter !== 'all' ? 1 : 0) +
@@ -157,8 +159,8 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
   return (
     <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs p-4 sm:p-5 text-slate-800 transition-all">
       {/* Search Input & Top Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pb-4 border-b border-slate-200">
-        <div className="relative flex-1">
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between pb-4 border-b border-slate-200">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             id="filter-keyword-input"
@@ -179,7 +181,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         </div>
 
         {/* Normal vs Lesion Quick Toggle */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 self-start lg:self-auto">
           <button
             id="filter-state-all"
             onClick={() => onFilterChange({ ...filters, isLesionFilter: 'all', page: 1 })}
@@ -235,15 +237,88 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-colors"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
-            <span>{isExpanded ? '收起多维筛选' : '展开多维筛选'}</span>
+            <span>{isExpanded ? '收起多维筛选' : (activeFiltersCount > 0 ? `展开多维筛选 (${activeFiltersCount})` : '展开多维筛选')}</span>
             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
           </button>
         </div>
       </div>
 
+      {/* Active Filter summary when collapsed */}
+      {!isExpanded && activeFiltersCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-2.5 text-xs text-slate-600">
+          <span className="text-slate-400">当前多维筛选:</span>
+          {filters.projectName && filters.projectName !== '全部' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium">
+              <FlaskConical className="w-3 h-3 text-blue-500" />
+              项目: {filters.projectName}
+              <button 
+                type="button"
+                onClick={() => onFilterChange({ ...filters, projectName: undefined, page: 1 })}
+                className="hover:text-blue-900 ml-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title="清除项目筛选"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {filters.organs && filters.organs.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs">
+              脏器: {filters.organs.join('、')}
+              <button 
+                type="button"
+                onClick={() => onFilterChange({ ...filters, organs: undefined, page: 1 })}
+                className="hover:text-slate-900 ml-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Multi-Dimensional Filter Body */}
       {isExpanded && (
         <div className="pt-4 space-y-4 text-xs">
+          {/* Dimension 0: Research Project */}
+          <div className="pb-3 border-b border-slate-200/70">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <FlaskConical className="w-3.5 h-3.5 text-blue-600" />
+                项目筛选：
+              </span>
+              {filters.projectName && filters.projectName !== '全部' && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ ...filters, projectName: undefined, page: 1 })}
+                  className="text-[11px] text-blue-600 hover:underline"
+                >
+                  清除已选项目
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(['全部', '小鼠长毒研究', '重复给药毒性研究'] as const).map(proj => {
+                const isSelected = (!filters.projectName || filters.projectName === '全部') 
+                  ? proj === '全部' 
+                  : filters.projectName === proj;
+                return (
+                  <button
+                    key={proj}
+                    type="button"
+                    id={`filter-project-${proj}`}
+                    onClick={() => onFilterChange({ ...filters, projectName: proj === '全部' ? undefined : proj, page: 1 })}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                        : 'bg-slate-50 text-slate-700 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 hover:text-blue-700'
+                    }`}
+                  >
+                    <span>{proj}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {/* Dimension 1: Organ / Tissue Type */}
           <div>
             <div className="flex items-center justify-between mb-2">

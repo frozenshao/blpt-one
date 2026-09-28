@@ -117,6 +117,11 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                   正常生理形态
                 </span>
               )}
+              {sample.projectName && (
+                <span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-medium">
+                  {sample.projectName}
+                </span>
+              )}
               <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
                 {sample.organ}组织
               </span>

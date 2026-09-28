@@ -81,6 +81,7 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                 <th className="py-3 px-3 min-w-[130px]">品系 / 动物种属</th>
                 <th className="py-3 px-3 min-w-[170px] max-w-[220px]">组别 / 受试物(溶媒)</th>
                 <th className="py-3 px-3 min-w-[90px]">性别/周龄</th>
+                <th className="py-3 px-3 min-w-[130px]">项目</th>
                 <th className="py-3 px-3 min-w-[110px]">采集时间</th>
                 <th className="py-3 px-4 min-w-[100px] text-center">操作</th>
               </tr>
@@ -181,6 +182,20 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                   <td className="py-3 px-3 whitespace-nowrap">
                     <div className="text-slate-700">{sample.gender}</div>
                     <div className="text-[11px] text-blue-700 font-mono font-semibold">{sample.ageWeeks} 周龄</div>
+                  </td>
+
+                  {/* Project Column: 采集时间前面增加“项目”列 */}
+                  <td className="py-3 px-3 whitespace-nowrap">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
+                      sample.projectName === '小鼠长毒研究'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : sample.projectName === '重复给药毒性研究'
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}>
+                      <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{sample.projectName || '标准毒性研究'}</span>
+                    </span>
                   </td>
 
                   {/* Sampling Date */}

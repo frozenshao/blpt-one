@@ -98,6 +98,7 @@ export interface PathologySample {
   strain: string; // 品系 (如 C57BL/6J, BALB/c, Sprague-Dawley, Wistar, 恒河猴等)
   experimentGroup: string; // 组别 (如 高脂模型组、溶媒对照组、给药高剂量组)
   testArticle: string; // 受试物/溶媒 (如 高脂饲料HFD、0.9%生理盐水溶媒、LPS脂多糖等)
+  projectName?: string; // 研究项目 (如 小鼠长毒研究、重复给药毒性研究)
   pathologyDiagnosis: string; // 病理诊断 (明确病理诊断结论)
   organ: OrganType;
   sliceType: SliceType;
@@ -123,6 +124,7 @@ export interface PathologySample {
 
 export interface PathologyFilterParams {
   keyword?: string;
+  projectName?: string; // '全部' | '小鼠长毒研究' | '重复给药毒性研究'
   organs?: OrganType[];
   sliceTypes?: SliceType[];
   isLesionFilter?: 'all' | 'normal' | 'lesion';

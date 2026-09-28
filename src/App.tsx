@@ -66,6 +66,9 @@ export default function App() {
       console.warn('Search API fallback to local in-memory dataset:', err);
       // Fallback to local filter in memory
       let filtered = [...INITIAL_PATHOLOGY_SAMPLES];
+      if (currentFilters.projectName && currentFilters.projectName !== '全部') {
+        filtered = filtered.filter(s => s.projectName === currentFilters.projectName);
+      }
       if (currentFilters.keyword) {
         const q = currentFilters.keyword.toLowerCase();
         filtered = filtered.filter(s => s.sampleCode.toLowerCase().includes(q) || s.organ.includes(q) || s.lesionName.includes(q));

@@ -239,7 +239,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   labelFormatter={(_label, payload) => {
                     if (payload && payload.length > 0) {
                       const d = payload[0].payload;
-                      return `${d.cohort} · ${d.lesion} (受累: 雄性${d.maleTotal}只 / 雌性${d.femaleTotal}只)`;
+                      return `${d.cohort} · ${d.lesion} (病变: 雄性${d.maleTotal}只 / 雌性${d.femaleTotal}只)`;
                     }
                     return '';
                   }}
@@ -287,15 +287,9 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 <th className="py-2.5 px-3">动物性别</th>
                 <th className="py-2.5 px-3">脏器</th>
                 <th className="py-2.5 px-3">病变名称</th>
-                <th className="py-2.5 px-3">受累/总数</th>
+                <th className="py-2.5 px-3">病变/总数</th>
                 <th className="py-2.5 px-3">发生率 (%)</th>
-                {viewMetric !== 'severity' && (
-                  <th className="py-2.5 px-3">病变程度</th>
-                )}
                 <th className="py-2.5 px-3">程度分级分布 (1/2/3/4级)</th>
-                {viewMetric !== 'severity' && (
-                  <th className="py-2.5 px-3">显著性(P值)</th>
-                )}
                 <th className="py-2.5 px-3" style={{ width: '5cm', minWidth: '5cm' }}>病理学评价与毒理学意义</th>
               </tr>
             </thead>
@@ -332,11 +326,6 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   <td className="py-2.5 px-3 font-mono font-bold text-indigo-700 whitespace-nowrap">
                     {item.incidenceRate.toFixed(1)}%
                   </td>
-                  {viewMetric !== 'severity' && (
-                    <td className="py-2.5 px-3 font-medium text-slate-800 whitespace-nowrap">
-                      {item.dominantSeverity}
-                    </td>
-                  )}
                   <td className="py-2.5 px-3 whitespace-nowrap font-mono text-[11px]">
                     <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded mr-1" title="1级 极轻度">
                       G1:{item.severityDistribution.grade1Minimal}
@@ -351,13 +340,6 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                       G4:{item.severityDistribution.grade4Marked}
                     </span>
                   </td>
-                  {viewMetric !== 'severity' && (
-                    <td className="py-2.5 px-3 font-mono whitespace-nowrap">
-                      <span className={item.pValueVsControl?.includes('*') ? 'text-rose-600 font-bold' : 'text-slate-500'}>
-                        {item.pValueVsControl || '-'}
-                      </span>
-                    </td>
-                  )}
                   <td 
                     className="py-2.5 px-3 text-slate-500 text-[11px]" 
                     style={{ width: '5cm', minWidth: '5cm' }} 

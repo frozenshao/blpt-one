@@ -48,6 +48,7 @@ app.post('/api/pathology/search', (req, res) => {
         item.sampleCode.toLowerCase().includes(q) ||
         (item.animalId && item.animalId.toLowerCase().includes(q)) ||
         (item.strain && item.strain.toLowerCase().includes(q)) ||
+        (item.projectName && item.projectName.toLowerCase().includes(q)) ||
         (item.experimentGroup && item.experimentGroup.toLowerCase().includes(q)) ||
         (item.testArticle && item.testArticle.toLowerCase().includes(q)) ||
         (item.pathologyDiagnosis && item.pathologyDiagnosis.toLowerCase().includes(q)) ||
@@ -65,6 +66,11 @@ app.post('/api/pathology/search', (req, res) => {
     // Organ filter (multi-select)
     if (params.organs && params.organs.length > 0) {
       filtered = filtered.filter(item => params.organs!.includes(item.organ));
+    }
+
+    // Project filter ('全部' | '小鼠长毒研究' | '重复给药毒性研究')
+    if (params.projectName && params.projectName !== '全部') {
+      filtered = filtered.filter(item => item.projectName === params.projectName);
     }
 
     // Slice Type filter (multi-select)
