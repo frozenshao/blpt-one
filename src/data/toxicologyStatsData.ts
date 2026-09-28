@@ -537,8 +537,29 @@ export const STRAIN_COMPARISON_DATA: StrainComparisonItem[] = [
     findingSummary: '雄性动物中，病变-肝脏小肉芽肿在SD大鼠的发生率（14.2%）显著高于Wistar大鼠（6.7%），提示SD大鼠对肝脏巨噬免疫反应背景易感性更高。'
   },
   {
+    id: 'sc-1f',
+    lesionName: '肝脏小肉芽肿',
+    organ: '肝脏',
+    gender: '雌性',
+    strainA: {
+      name: 'SD 大鼠',
+      total: 120,
+      affected: 7,
+      rate: 5.8
+    },
+    strainB: {
+      name: 'Wistar 大鼠',
+      total: 120,
+      affected: 4,
+      rate: 3.3
+    },
+    rateRatio: '1.76x',
+    pValue: 'P = 0.358 (NS)',
+    findingSummary: '雌性动物中，SD大鼠肝脏微肉芽肿发生率（5.8%）略高于Wistar大鼠（3.3%），整体发生率低于同品系雄性。'
+  },
+  {
     id: 'sc-2',
-    lesionName: '肾小管嗜碱性变 (慢性肾病CPN早期)',
+    lesionName: '肾小管嗜碱性变',
     organ: '肾脏',
     gender: '雄性',
     strainA: {
@@ -558,8 +579,29 @@ export const STRAIN_COMPARISON_DATA: StrainComparisonItem[] = [
     findingSummary: '雄性大鼠中，SD大鼠自发性进行性肾小管嗜碱性变发生率高达22.5%，显著高于Wistar大鼠(10.8%)，在毒理试验肾毒性判读时须结合对照组背景校正。'
   },
   {
+    id: 'sc-2f',
+    lesionName: '肾小管嗜碱性变',
+    organ: '肾脏',
+    gender: '雌性',
+    strainA: {
+      name: 'SD 大鼠',
+      total: 120,
+      affected: 14,
+      rate: 11.7
+    },
+    strainB: {
+      name: 'Wistar 大鼠',
+      total: 120,
+      affected: 6,
+      rate: 5.0
+    },
+    rateRatio: '2.34x',
+    pValue: 'P = 0.048 *',
+    findingSummary: '雌性大鼠中，SD大鼠肾小管嗜碱性变发生率为11.7%，高于Wistar大鼠(5.0%)。'
+  },
+  {
     id: 'sc-3',
-    lesionName: '肝细胞脂肪变性 (高脂易感性)',
+    lesionName: '肝细胞脂肪变性',
     organ: '肝脏',
     gender: '雄性',
     strainA: {
@@ -579,9 +621,30 @@ export const STRAIN_COMPARISON_DATA: StrainComparisonItem[] = [
     findingSummary: '雄性小鼠中，C57BL/6小鼠对代谢及饲料诱导的肝脂肪蓄积高度敏感(发生率28.3%)，而BALB/c小鼠表现出较强的代谢抗性(11.7%)。'
   },
   {
+    id: 'sc-3f',
+    lesionName: '肝细胞脂肪变性',
+    organ: '肝脏',
+    gender: '雌性',
+    strainA: {
+      name: 'C57BL/6 小鼠',
+      total: 120,
+      affected: 22,
+      rate: 18.3
+    },
+    strainB: {
+      name: 'BALB/c 小鼠',
+      total: 120,
+      affected: 10,
+      rate: 8.3
+    },
+    rateRatio: '2.20x',
+    pValue: 'P = 0.019 *',
+    findingSummary: '雌性小鼠中，C57BL/6小鼠肝细胞脂肪变性发生率(18.3%)明显高于BALB/c小鼠(8.3%)。'
+  },
+  {
     id: 'sc-4',
     lesionName: '间质炎性细胞浸润',
-    organ: '肝脏/间质',
+    organ: '肝脏',
     gender: '雄性',
     strainA: {
       name: 'C57BL/6 小鼠',
@@ -600,8 +663,29 @@ export const STRAIN_COMPARISON_DATA: StrainComparisonItem[] = [
     findingSummary: '雄性C57BL/6小鼠呈偏Th1优势炎症微环境，间质炎性细胞浸润发生率明显偏高。'
   },
   {
+    id: 'sc-4f',
+    lesionName: '间质炎性细胞浸润',
+    organ: '肝脏',
+    gender: '雌性',
+    strainA: {
+      name: 'C57BL/6 小鼠',
+      total: 120,
+      affected: 15,
+      rate: 12.5
+    },
+    strainB: {
+      name: 'BALB/c 小鼠',
+      total: 120,
+      affected: 8,
+      rate: 6.7
+    },
+    rateRatio: '1.87x',
+    pValue: 'P = 0.118 (NS)',
+    findingSummary: '雌性C57BL/6小鼠间质炎性浸润发生率(12.5%)高于BALB/c小鼠(6.7%)。'
+  },
+  {
     id: 'sc-5',
-    lesionName: '心肌单个核细胞浸润 (局灶自发性)',
+    lesionName: '心肌单个核细胞浸润',
     organ: '心脏',
     gender: '雄性',
     strainA: {
@@ -619,6 +703,48 @@ export const STRAIN_COMPARISON_DATA: StrainComparisonItem[] = [
     rateRatio: '1.45x',
     pValue: 'P = 0.302 (NS)',
     findingSummary: '雄性SD大鼠与Wistar大鼠的心肌自发性单个核细胞浸润发生率差异无统计学显著性，均属啮齿类常见背景自发改变。'
+  },
+  {
+    id: 'sc-5f',
+    lesionName: '心肌单个核细胞浸润',
+    organ: '心脏',
+    gender: '雌性',
+    strainA: {
+      name: 'SD 大鼠',
+      total: 120,
+      affected: 8,
+      rate: 6.7
+    },
+    strainB: {
+      name: 'Wistar 大鼠',
+      total: 120,
+      affected: 5,
+      rate: 4.2
+    },
+    rateRatio: '1.60x',
+    pValue: 'P = 0.385 (NS)',
+    findingSummary: '雌性大鼠心肌单个核细胞浸润发生率整体较低，品系间无显著差异。'
+  },
+  {
+    id: 'sc-6m',
+    lesionName: '垂体前叶局灶性增生/囊肿',
+    organ: '垂体',
+    gender: '雄性',
+    strainA: {
+      name: 'SD 大鼠',
+      total: 120,
+      affected: 4,
+      rate: 3.3
+    },
+    strainB: {
+      name: 'Wistar 大鼠',
+      total: 120,
+      affected: 2,
+      rate: 1.7
+    },
+    rateRatio: '1.94x',
+    pValue: 'P = 0.408 (NS)',
+    findingSummary: '雄性大鼠垂体前叶自发改变发生率极低，SD大鼠略高于Wistar大鼠。'
   },
   {
     id: 'sc-6',

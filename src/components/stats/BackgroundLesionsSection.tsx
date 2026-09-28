@@ -244,7 +244,6 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
             <Activity className="w-4 h-4 text-emerald-600" />
             <span>常见背景病变雌雄发生率对比图 (%)</span>
           </h4>
-          <span className="text-[11px] text-slate-400">蓝: 雄性 (Male) | 粉: 雌性 (Female)</span>
         </div>
 
         <div className="h-64">
@@ -286,7 +285,6 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
           <span className="text-xs font-bold text-slate-700">
             实验动物自发背景病变历史对照数据库 (共 {filteredData.length} 项记录)
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">GLP-HCD-REF-2026</span>
         </div>
 
         <div className="overflow-x-auto">

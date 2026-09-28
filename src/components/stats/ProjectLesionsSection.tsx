@@ -56,11 +56,13 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
 
     const maleG1 = maleItem?.severityDistribution.grade1Minimal || 0;
     const maleG2 = maleItem?.severityDistribution.grade2Mild || 0;
-    const maleG3 = (maleItem?.severityDistribution.grade3Moderate || 0) + (maleItem?.severityDistribution.grade4Marked || 0);
+    const maleG3 = maleItem?.severityDistribution.grade3Moderate || 0;
+    const maleG4 = maleItem?.severityDistribution.grade4Marked || 0;
 
     const femaleG1 = femaleItem?.severityDistribution.grade1Minimal || 0;
     const femaleG2 = femaleItem?.severityDistribution.grade2Mild || 0;
-    const femaleG3 = (femaleItem?.severityDistribution.grade3Moderate || 0) + (femaleItem?.severityDistribution.grade4Marked || 0);
+    const femaleG3 = femaleItem?.severityDistribution.grade3Moderate || 0;
+    const femaleG4 = femaleItem?.severityDistribution.grade4Marked || 0;
 
     const shortCohort = cohortName.split(' ')[0];
 
@@ -73,14 +75,16 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
       '雌性发生率 (%)': femaleItem ? femaleItem.incidenceRate : 0,
       maleRatio: maleItem ? `${maleItem.affectedAnimals}/${maleItem.totalAnimals}` : '0/20',
       femaleRatio: femaleItem ? `${femaleItem.affectedAnimals}/${femaleItem.totalAnimals}` : '0/20',
-      // Male severity breakdown (参考 image: 浅蓝/中蓝/深粉蓝)
-      '雄性_深粉蓝_中重度': maleG3,
-      '雄性_中蓝_轻度': maleG2,
-      '雄性_浅蓝_极轻度': maleG1,
-      // Female severity breakdown (粉色系)
-      '雌性_深粉_中重度': femaleG3,
-      '雌性_中粉_轻度': femaleG2,
-      '雌性_浅粉_极轻度': femaleG1,
+      // Male severity breakdown: 1级, 2级, 3级, 4级
+      '雄性_1级': maleG1,
+      '雄性_2级': maleG2,
+      '雄性_3级': maleG3,
+      '雄性_4级': maleG4,
+      // Female severity breakdown: 1级, 2级, 3级, 4级
+      '雌性_1级': femaleG1,
+      '雌性_2级': femaleG2,
+      '雌性_3级': femaleG3,
+      '雌性_4级': femaleG4,
       maleTotal: maleItem ? maleItem.affectedAnimals : 0,
       femaleTotal: femaleItem ? femaleItem.affectedAnimals : 0
     };
@@ -181,9 +185,6 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 : '各剂量组病变程度构成'}
             </span>
           </h4>
-          <span className="text-[11px] text-slate-500 font-medium">
-            {viewMetric === 'rate' ? '单位: 发生率 (%)' : '单位: 受累动物数 (只)'}
-          </span>
         </div>
 
         <div className="h-64">
@@ -221,7 +222,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 )}
               </BarChart>
             ) : (
-              /* Stacked Bar Chart: 同一个剂量组的雌性和雄性展示在一起 (参考 image: 浅蓝/中蓝/深粉蓝，雌性为粉色系) */
+              /* Stacked Bar Chart: 同一个剂量组的雌性和雄性展示在一起，分为 1、2、3、4级 */
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                 <XAxis 
                   dataKey="name" 
@@ -244,21 +245,23 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: 10 }} />
-                {/* 雄性层叠柱条：深粉蓝(#4338ca) -> 中蓝(#00a2e8) -> 浅蓝(#93d5ed)，同一个剂量组与雌性展示在一起 */}
+                {/* 雄性层叠柱条：1级 -> 2级 -> 3级 -> 4级 */}
                 {(selectedGender === '全部性别' || selectedGender === '雄性') && (
                   <>
-                    <Bar dataKey="雄性_深粉蓝_中重度" name="雄性·中重度 (深粉蓝)" stackId="male" fill="#4338ca" />
-                    <Bar dataKey="雄性_中蓝_轻度" name="雄性·轻度 (中蓝)" stackId="male" fill="#00a2e8" />
-                    <Bar dataKey="雄性_浅蓝_极轻度" name="雄性·极轻度 (浅蓝)" stackId="male" fill="#93d5ed" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="雄性_1级" name="雄性 1级" stackId="male" fill="#93d5ed" />
+                    <Bar dataKey="雄性_2级" name="雄性 2级" stackId="male" fill="#00a2e8" />
+                    <Bar dataKey="雄性_3级" name="雄性 3级" stackId="male" fill="#2563eb" />
+                    <Bar dataKey="雄性_4级" name="雄性 4级" stackId="male" fill="#4338ca" radius={[4, 4, 0, 0]} />
                   </>
                 )}
 
-                {/* 雌性层叠柱条：深粉色(#db2777) -> 中粉色(#f472b6) -> 浅粉色(#fbcfe8)，同一个剂量组与雄性展示在一起 */}
+                {/* 雌性层叠柱条：1级 -> 2级 -> 3级 -> 4级 */}
                 {(selectedGender === '全部性别' || selectedGender === '雌性') && (
                   <>
-                    <Bar dataKey="雌性_深粉_中重度" name="雌性·中重度 (深粉)" stackId="female" fill="#db2777" />
-                    <Bar dataKey="雌性_中粉_轻度" name="雌性·轻度 (中粉)" stackId="female" fill="#f472b6" />
-                    <Bar dataKey="雌性_浅粉_极轻度" name="雌性·极轻度 (浅粉)" stackId="female" fill="#fbcfe8" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="雌性_1级" name="雌性 1级" stackId="female" fill="#fbcfe8" />
+                    <Bar dataKey="雌性_2级" name="雌性 2级" stackId="female" fill="#f472b6" />
+                    <Bar dataKey="雌性_3级" name="雌性 3级" stackId="female" fill="#db2777" />
+                    <Bar dataKey="雌性_4级" name="雌性 4级" stackId="female" fill="#9d174d" radius={[4, 4, 0, 0]} />
                   </>
                 )}
               </BarChart>
@@ -286,9 +289,13 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 <th className="py-2.5 px-3">病变名称</th>
                 <th className="py-2.5 px-3">受累/总数</th>
                 <th className="py-2.5 px-3">发生率 (%)</th>
-                <th className="py-2.5 px-3">病变程度</th>
+                {viewMetric !== 'severity' && (
+                  <th className="py-2.5 px-3">病变程度</th>
+                )}
                 <th className="py-2.5 px-3">程度分级分布 (1/2/3/4级)</th>
-                <th className="py-2.5 px-3">显著性(P值)</th>
+                {viewMetric !== 'severity' && (
+                  <th className="py-2.5 px-3">显著性(P值)</th>
+                )}
                 <th className="py-2.5 px-3" style={{ width: '5cm', minWidth: '5cm' }}>病理学评价与毒理学意义</th>
               </tr>
             </thead>
@@ -325,9 +332,11 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   <td className="py-2.5 px-3 font-mono font-bold text-indigo-700 whitespace-nowrap">
                     {item.incidenceRate.toFixed(1)}%
                   </td>
-                  <td className="py-2.5 px-3 font-medium text-slate-800 whitespace-nowrap">
-                    {item.dominantSeverity}
-                  </td>
+                  {viewMetric !== 'severity' && (
+                    <td className="py-2.5 px-3 font-medium text-slate-800 whitespace-nowrap">
+                      {item.dominantSeverity}
+                    </td>
+                  )}
                   <td className="py-2.5 px-3 whitespace-nowrap font-mono text-[11px]">
                     <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded mr-1" title="1级 极轻度">
                       G1:{item.severityDistribution.grade1Minimal}
@@ -342,11 +351,13 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                       G4:{item.severityDistribution.grade4Marked}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 font-mono whitespace-nowrap">
-                    <span className={item.pValueVsControl?.includes('*') ? 'text-rose-600 font-bold' : 'text-slate-500'}>
-                      {item.pValueVsControl || '-'}
-                    </span>
-                  </td>
+                  {viewMetric !== 'severity' && (
+                    <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                      <span className={item.pValueVsControl?.includes('*') ? 'text-rose-600 font-bold' : 'text-slate-500'}>
+                        {item.pValueVsControl || '-'}
+                      </span>
+                    </td>
+                  )}
                   <td 
                     className="py-2.5 px-3 text-slate-500 text-[11px]" 
                     style={{ width: '5cm', minWidth: '5cm' }} 

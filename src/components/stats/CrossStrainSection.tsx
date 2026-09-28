@@ -71,22 +71,35 @@ export const CrossStrainSection: React.FC = () => {
     return true;
   });
 
-  // Chart data
-  const chartData = filteredData.map(item => ({
-    name: `${item.lesionName.split(' ')[0]} (${item.gender})`,
-    shortLabel: `${item.lesionName.split(' ')[0]}`,
-    strainAName: item.strainA.name,
-    strainBName: item.strainB.name,
-    [item.strainA.name]: item.strainA.rate,
-    [item.strainB.name]: item.strainB.rate,
-    rateA: item.strainA.rate,
-    rateB: item.strainB.rate,
-    countA: `${item.strainA.affected}/${item.strainA.total}`,
-    countB: `${item.strainB.affected}/${item.strainB.total}`,
-    ratio: item.rateRatio,
-    pValue: item.pValue,
-    fullName: `${item.lesionName} [${item.gender}动物]`
-  }));
+  // Chart data: 区分雌性、雄性展示（参考 image.png: 雄性蓝色系，雌性粉色系）
+  const distinctLesions = Array.from(new Set(filteredData.map(item => item.lesionName)));
+
+  const chartData = distinctLesions.map(lesion => {
+    const maleItem = filteredData.find(item => item.lesionName === lesion && item.gender === '雄性');
+    const femaleItem = filteredData.find(item => item.lesionName === lesion && item.gender === '雌性');
+    const anyItem = maleItem || femaleItem || filteredData[0];
+    const sAName = anyItem?.strainA.name || (selectedStrains[0] || '品系A');
+    const sBName = anyItem?.strainB.name || (selectedStrains[1] || '品系B');
+
+    return {
+      name: lesion,
+      shortLabel: lesion.split(' ')[0],
+      strainAName: sAName,
+      strainBName: sBName,
+      // 雄性 (参考 image.png: 蓝色系)
+      maleRateA: maleItem?.strainA.rate || 0,
+      maleRateB: maleItem?.strainB.rate || 0,
+      maleCountA: maleItem ? `${maleItem.strainA.affected}/${maleItem.strainA.total}` : '-',
+      maleCountB: maleItem ? `${maleItem.strainB.affected}/${maleItem.strainB.total}` : '-',
+      maleRatio: maleItem?.rateRatio || '-',
+      // 雌性 (参考 image.png: 粉色系)
+      femaleRateA: femaleItem?.strainA.rate || 0,
+      femaleRateB: femaleItem?.strainB.rate || 0,
+      femaleCountA: femaleItem ? `${femaleItem.strainA.affected}/${femaleItem.strainA.total}` : '-',
+      femaleCountB: femaleItem ? `${femaleItem.strainB.affected}/${femaleItem.strainB.total}` : '-',
+      femaleRatio: femaleItem?.rateRatio || '-'
+    };
+  });
 
   const tooltipStyle = {
     backgroundColor: '#ffffff',
@@ -232,21 +245,36 @@ export const CrossStrainSection: React.FC = () => {
               <Tooltip 
                 contentStyle={tooltipStyle}
                 formatter={(value: any, name: any, item: any) => {
-                  const count = name === item.payload.strainAName ? item.payload.countA : item.payload.countB;
-                  return [`${value}% (${count})`, name];
+                  const isMale = name.includes('雄性');
+                  const isA = name.includes(item.payload.strainAName);
+                  const count = isMale 
+                    ? (isA ? item.payload.maleCountA : item.payload.maleCountB)
+                    : (isA ? item.payload.femaleCountA : item.payload.femaleCountB);
+                  const ratio = isMale ? item.payload.maleRatio : item.payload.femaleRatio;
+                  return [`${value}% (${count}, 比值: ${ratio})`, name];
                 }}
                 labelFormatter={(_label, payload) => {
                   if (payload && payload.length > 0) {
-                    const d = payload[0].payload;
-                    return `${d.fullName} (比值: ${d.ratio}, ${d.pValue})`;
+                    return payload[0].payload.name;
                   }
                   return '';
                 }}
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: 10 }} />
-              {/* Dynamically render bars for the strains */}
-              <Bar dataKey="rateA" name="品系 A (SD大鼠 / C57BL/6)" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="rateB" name="品系 B (Wistar大鼠 / BALB/c)" fill="#10b981" radius={[4, 4, 0, 0]} />
+              {/* 雄性柱条：蓝色系 (参考 image.png: 雄性为蓝) */}
+              {(selectedGender === '全部性别' || selectedGender === '雄性') && (
+                <>
+                  <Bar dataKey="maleRateA" name={`${selectedStrains[0] || '品系A'} (雄性)`} fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="maleRateB" name={`${selectedStrains[1] || '品系B'} (雄性)`} fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                </>
+              )}
+              {/* 雌性柱条：粉色系 (参考 image.png: 雌性为粉) */}
+              {(selectedGender === '全部性别' || selectedGender === '雌性') && (
+                <>
+                  <Bar dataKey="femaleRateA" name={`${selectedStrains[0] || '品系A'} (雌性)`} fill="#db2777" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="femaleRateB" name={`${selectedStrains[1] || '品系B'} (雌性)`} fill="#f472b6" radius={[4, 4, 0, 0]} />
+                </>
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -258,7 +286,6 @@ export const CrossStrainSection: React.FC = () => {
           <span className="text-xs font-bold text-slate-700">
             不同品系动物病变发生率比较明细表 (共 {filteredData.length} 项)
           </span>
-          <span className="text-[11px] text-slate-500 font-mono">CROSS-STRAIN-2026</span>
         </div>
 
         <div className="overflow-x-auto">
