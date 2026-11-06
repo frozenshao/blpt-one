@@ -1,16 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  Eye, 
-  Calendar, 
-  HeartPulse, 
-  Tag, 
-  Dna, 
-  ChevronLeft, 
-  ChevronRight,
-  CheckCircle2, 
   AlertCircle, 
-  Layers,
-  FlaskConical
+  CheckCircle2, 
+  ChevronLeft, 
+  ChevronRight, 
+  Search, 
+  Tag
 } from 'lucide-react';
 import { PathologySample } from '../types/pathology';
 
@@ -22,8 +17,9 @@ interface SampleResultsViewProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onSelectSample: (sample: PathologySample) => void;
-  onSendToAI?: (sample: PathologySample) => void;
-  isLoading: boolean;
+  onSendToAI: (sample: PathologySample) => void;
+  onAnalyzeCohort?: (selectedSamples: PathologySample[]) => void;
+  isLoading?: boolean;
 }
 
 export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
@@ -34,246 +30,264 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
   totalPages,
   onPageChange,
   onSelectSample,
+  onSendToAI,
   isLoading
 }) => {
+  const [localSearch, setLocalSearch] = useState<string>('');
+
+  // Filter local samples if local search typed
+  const displayedSamples = localSearch.trim() === ''
+    ? samples
+    : samples.filter(s => 
+        s.sampleCode.toLowerCase().includes(localSearch.toLowerCase()) ||
+        s.organ.toLowerCase().includes(localSearch.toLowerCase()) ||
+        (s.projectName && s.projectName.toLowerCase().includes(localSearch.toLowerCase())) ||
+        (s.testArticle && s.testArticle.toLowerCase().includes(localSearch.toLowerCase())) ||
+        (s.pathologyDiagnosis && s.pathologyDiagnosis.toLowerCase().includes(localSearch.toLowerCase())) ||
+        (s.strain && s.strain.toLowerCase().includes(localSearch.toLowerCase()))
+      );
+
   return (
-    <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden flex flex-col">
-      {/* Table Toolbar: Only shows "共x条" */}
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/70">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-slate-800">
-            共{total}条
-          </span>
+    <div className="w-full bg-white rounded-lg border border-slate-300 shadow-xs overflow-hidden select-none">
+      {/* 顶部操作工具栏：快速搜索靠左 */}
+      <div className="p-3 sm:px-4 sm:py-2.5 border-b border-slate-200 flex items-center justify-start bg-white">
+        {/* 快速搜索输入框 */}
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            placeholder="快速搜索样本编号、诊断"
+            className="pl-8 pr-3 py-1.5 rounded text-xs border border-slate-300 focus:outline-none focus:border-[#18446b] w-56 sm:w-72 bg-slate-50 focus:bg-white transition-all"
+          />
         </div>
       </div>
 
-      {/* Content Area - Only Table View */}
+      {/* 主数据展示区 */}
       {isLoading ? (
         <div className="py-24 flex flex-col items-center justify-center text-slate-500 gap-3">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm">正在检索多维病理切片数据库...</p>
+          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-semibold text-slate-600">正在检索多维病理样本数据库...</p>
         </div>
-      ) : samples.length === 0 ? (
+      ) : displayedSamples.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3 text-center px-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
             <Tag className="w-6 h-6" />
           </div>
-          <p className="text-sm font-semibold text-slate-800">未找到符合当前多维组合条件的病理样本</p>
+          <p className="text-sm font-semibold text-slate-800">未找到符合当前多维筛选条件的病理样本</p>
           <p className="text-xs text-slate-500 max-w-md">
-            请尝试调整脏器类型、病变名称或扩大周龄范围；或点击顶部的“重置条件”查看全部数据。
+            请尝试在左侧筛选面板中放宽项目名称、动物种属、系统/脏器类型或受试物条件。
           </p>
         </div>
       ) : (
-        /* Table View with Horizontal Scroll & Fixed Sample Code Column */
+        /* 数据表格视图 - 严格按照列顺序，无排序箭头，样本编号纯文本 */
         <div className="overflow-x-auto w-full">
-          <table className="w-full min-w-[1200px] text-left text-xs text-slate-700 border-collapse">
-            <thead className="bg-slate-100/90 text-slate-600 border-b border-slate-200 font-semibold uppercase tracking-wider whitespace-nowrap">
+          <table className="w-full text-left text-xs text-slate-700 border-collapse">
+            <thead className="bg-[#f8fafc] text-slate-700 border-b border-slate-300 font-bold tracking-tight whitespace-nowrap">
               <tr>
-                {/* 样本编号列固定在左侧，加宽列宽且蓝色字不换行展示 */}
-                <th className="py-3 px-4 sticky left-0 z-20 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200/80 min-w-[220px] whitespace-nowrap">
+                {/* 1. 项目名称 */}
+                <th className="py-3 px-3 min-w-[120px]">
+                  项目名称
+                </th>
+
+                {/* 2. 样本编号 */}
+                <th className="py-3 px-3 min-w-[200px]">
                   样本编号
                 </th>
-                <th className="py-3 px-3 min-w-[110px]">脏器/切片</th>
-                {/* 表头修改为“病变名称/分布” */}
-                <th className="py-3 px-3 min-w-[140px]">病变名称/分布</th>
-                {/* 病理诊断 单独为一列 */}
-                <th className="py-3 px-3 min-w-[260px] max-w-[360px]">病理诊断</th>
-                <th className="py-3 px-3 min-w-[130px]">品系 / 动物种属</th>
-                <th className="py-3 px-3 min-w-[170px] max-w-[220px]">组别 / 受试物(溶媒)</th>
-                <th className="py-3 px-3 min-w-[90px]">性别/周龄</th>
-                <th className="py-3 px-3 min-w-[130px]">项目</th>
-                <th className="py-3 px-3 min-w-[110px]">采集时间</th>
-                <th className="py-3 px-4 min-w-[100px] text-center">操作</th>
+
+                {/* 3. 动物种属 */}
+                <th className="py-3 px-3 min-w-[120px]">
+                  动物种属
+                </th>
+
+                {/* 4. 动物品系 */}
+                <th className="py-3 px-3 min-w-[130px]">
+                  动物品系
+                </th>
+
+                {/* 5. 系统/脏器类型 (显示在动物品系列后) */}
+                <th className="py-3 px-3 min-w-[130px]">
+                  系统/脏器类型
+                </th>
+
+                {/* 6. 受试物 (显示在系统/脏器类型列后) */}
+                <th className="py-3 px-3 min-w-[130px]">
+                  受试物
+                </th>
+
+                {/* 7. 组别 */}
+                <th className="py-3 px-3 min-w-[150px]">
+                  组别
+                </th>
+
+                {/* 8. 性别 (拆分为独立列) */}
+                <th className="py-3 px-2 min-w-[65px] text-center">
+                  性别
+                </th>
+
+                {/* 9. 周龄 (拆分为独立列) */}
+                <th className="py-3 px-2 min-w-[65px] text-center">
+                  周龄
+                </th>
+
+                {/* 10. 病理诊断 (移动至采集时间列前) */}
+                <th className="py-3 px-3 min-w-[240px] max-w-[320px]">
+                  病理诊断
+                </th>
+
+                {/* 11. 组织状态 (移动至病理诊断列后) */}
+                <th className="py-3 px-3 min-w-[95px] text-center">
+                  组织状态
+                </th>
+
+                {/* 12. 采集时间 */}
+                <th className="py-3 px-3 min-w-[95px]">
+                  采集时间
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {samples.map((sample) => (
-                <tr 
-                  key={sample.id}
-                  id={`sample-row-${sample.id}`}
-                  className="hover:bg-blue-50/40 transition-colors group cursor-pointer"
-                  onClick={() => onSelectSample(sample)}
-                >
-                  {/* Fixed Sample Code + Thumbnail: 不显示灰色字，拉宽列宽蓝色字不换行展示 */}
-                  <td className="py-3 px-4 sticky left-0 z-10 bg-white group-hover:bg-blue-50/90 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] border-r border-slate-200/80 transition-colors whitespace-nowrap min-w-[220px]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0 relative group-hover:border-blue-500 transition-colors">
-                        <img 
-                          src={sample.thumbnailUrl || sample.imageUrl} 
-                          alt={sample.sampleCode}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        {sample.isLesion && (
-                          <div className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-rose-500 shadow-xs" />
-                        )}
-                      </div>
-                      <div className="flex items-center">
-                        <span className="font-mono font-bold text-blue-600 group-hover:text-blue-700 whitespace-nowrap text-xs sm:text-sm">
-                          {sample.sampleCode}
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {displayedSamples.map((sample) => {
+                const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
+                const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
+
+                return (
+                  <tr 
+                    key={sample.id}
+                    onClick={() => onSelectSample(sample)}
+                    title="点击查看病理切片详细信息"
+                    className="hover:bg-sky-50/50 transition-colors cursor-pointer bg-white"
+                  >
+                    {/* 1. 项目名称 */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <span className="font-semibold text-slate-800 text-xs">
+                        {sample.projectName || '长期毒性试验'}
+                      </span>
+                    </td>
+
+                    {/* 2. 样本编号 (不显示任何图标和原点，纯文本) */}
+                    <td className="py-3 px-3 whitespace-nowrap font-mono text-xs font-bold text-[#18446b]">
+                      {displayCode}
+                    </td>
+
+                    {/* 3. 动物种属 */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <span className="font-bold text-slate-800 text-xs">
+                        {sample.species}
+                      </span>
+                    </td>
+
+                    {/* 4. 动物品系 */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <span className="font-medium text-slate-700 text-xs">
+                        {sample.strain || sample.species}
+                      </span>
+                    </td>
+
+                    {/* 5. 系统/脏器类型 (系统名显示在第一行，脏器显示在第二行，不显示蓝色点) */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-xs leading-tight">
+                          {sample.system || '消化系统'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                          {sample.organ}
                         </span>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Organ & Slice Type */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold border border-slate-200">
-                        <HeartPulse className="w-3 h-3 text-blue-600" />
-                        {sample.organ}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">{sample.sliceType}</div>
-                  </td>
+                    {/* 6. 受试物 ("/"前的数据显示在第一行，"/"后的数据显示在第二行) */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-xs leading-tight">
+                          {sample.testArticleCategory || '药品'}
+                        </span>
+                        {sample.testArticleSubCategory ? (
+                          <span className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                            {sample.testArticleSubCategory}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
 
-                  {/* Lesion Name & Distribution: 下方灰色字不显示括号 */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    {sample.isLesion ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
-                        <AlertCircle className="w-3 h-3 text-rose-600" />
-                        {sample.lesionName}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        正常组织
-                      </span>
-                    )}
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      {sample.lesionDistribution}
-                    </div>
-                  </td>
+                    {/* 7. 组别 (仅显示现有第一行数据) */}
+                    <td className="py-3 px-3 min-w-[150px]">
+                      <div className="font-semibold text-slate-800 text-xs truncate max-w-[200px]" title={sample.experimentGroup}>
+                        {sample.experimentGroup || '高剂量给药组'}
+                      </div>
+                    </td>
 
-                  {/* Pathology Diagnosis - Separate Dedicated Column */}
-                  <td className="py-3 px-3 min-w-[260px] max-w-[360px]">
-                    <div 
-                      className="text-[11px] text-slate-800 font-medium leading-relaxed line-clamp-2" 
-                      title={sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis}
-                    >
-                      {sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis || '未见明显组织学异型性或病理损伤'}
-                    </div>
-                  </td>
+                    {/* 8. 性别 (独立列) */}
+                    <td className="py-3 px-2 text-center whitespace-nowrap text-xs text-slate-700">
+                      {genderText}
+                    </td>
 
-                  {/* Strain & Species */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <div className="font-semibold text-slate-800 flex items-center gap-1">
-                      <Dna className="w-3 h-3 text-teal-600" />
-                      <span>{sample.strain || sample.species}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 mt-0.5">
-                      {sample.species}
-                    </div>
-                  </td>
+                    {/* 9. 周龄 (独立列) */}
+                    <td className="py-3 px-2 text-center whitespace-nowrap text-xs font-mono text-slate-700">
+                      {sample.ageWeeks}周
+                    </td>
 
-                  {/* Group & Test Article */}
-                  <td className="py-3 px-3 min-w-[170px] max-w-[220px]">
-                    <div className="font-medium text-slate-800 flex items-center gap-1 text-[11px]">
-                      <Layers className="w-3 h-3 text-indigo-500 flex-shrink-0" />
-                      <span className="truncate" title={sample.experimentGroup}>{sample.experimentGroup || sample.structuredDescription?.experimentGroup}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <FlaskConical className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                      <span className="truncate" title={sample.testArticle}>{sample.testArticle || '标准饲养'}</span>
-                    </div>
-                  </td>
-
-                  {/* Gender & Age */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <div className="text-slate-700">{sample.gender}</div>
-                    <div className="text-[11px] text-blue-700 font-mono font-semibold">{sample.ageWeeks} 周龄</div>
-                  </td>
-
-                  {/* Project Column: 采集时间前面增加“项目”列 */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${
-                      sample.projectName === '小鼠长毒研究'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : sample.projectName === '重复给药毒性研究'
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        : 'bg-slate-100 text-slate-700 border border-slate-200'
-                    }`}>
-                      <FlaskConical className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{sample.projectName || '标准毒性研究'}</span>
-                    </span>
-                  </td>
-
-                  {/* Sampling Date */}
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <div className="flex items-center gap-1 text-slate-700">
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      {sample.samplingDate}
-                    </div>
-                    <div className="text-[10px] text-slate-500">{sample.collectorName}</div>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                    <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        id={`view-detail-${sample.id}`}
-                        onClick={() => onSelectSample(sample)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white rounded-lg transition-colors border border-blue-200 text-xs font-semibold shadow-2xs"
-                        title="查看切片高倍图像与结构化病理描述"
+                    {/* 10. 病理诊断 */}
+                    <td className="py-3 px-3 min-w-[240px] max-w-[320px]">
+                      <div 
+                        className="text-[11px] text-slate-800 line-clamp-2 leading-relaxed" 
+                        title={sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis}
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>查看详情</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis || '未见明显组织学病变或细胞异型性'}
+                      </div>
+                    </td>
+
+                    {/* 11. 组织状态 (在病理诊断后) */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      {sample.isLesion ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 font-semibold">
+                          <AlertCircle className="w-3 h-3 text-rose-600" />
+                          病变组织
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-semibold">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          正常组织
+                        </span>
+                      )}
+                    </td>
+
+                    {/* 12. 采集时间 */}
+                    <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
+                      {sample.samplingDate}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Pagination Bar */}
-      {totalPages > 1 && (
-        <div className="p-4 border-t border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-          <div>
-            显示第 <span className="font-semibold text-slate-900">{(page - 1) * pageSize + 1}</span> 至{' '}
-            <span className="font-semibold text-slate-900">{Math.min(page * pageSize, total)}</span> 条，共{' '}
-            <span className="font-semibold text-slate-900">{total}</span> 条病理切片记录
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium flex items-center gap-1 transition-colors"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>上一页</span>
-            </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onPageChange(p)}
-                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
-                    page === p
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'bg-white border border-slate-300 hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-medium flex items-center gap-1 transition-colors"
-            >
-              <span>下一页</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+      {/* 底部翻页控制栏 (不显示任何数字与样本数计数) */}
+      <div className="p-3 sm:px-4 border-t border-slate-200 flex items-center justify-end bg-slate-50/60">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            title="上一页"
+            className="p-1.5 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            title="下一页"
+            className="p-1.5 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };

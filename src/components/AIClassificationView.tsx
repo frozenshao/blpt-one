@@ -6,11 +6,15 @@ import {
   RefreshCw, 
   Info,
   Maximize2,
-  Minimize2
+  Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Layers,
+  Sliders,
+  CheckCircle2
 } from 'lucide-react';
 import { ClassificationResult, PathologySample } from '../types/pathology';
 
-// Use the high-fidelity microscopic pathology slide image and exact heatmap matching Picture 5
 import sampleSlidePic4 from '../assets/images/pathology_pic4_slide_1790217459142.jpg';
 import picture5ExactHeatmap from '../assets/images/picture5_exact_heatmap_1790220645022.jpg';
 
@@ -22,24 +26,27 @@ interface AIClassificationViewProps {
 export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
   initialSampleForAI
 }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | { name: string; size?: number } | null>(null);
   const [formatError, setFormatError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStage, setAnalysisStage] = useState<string>('');
   const [result, setResult] = useState<ClassificationResult | null>(null);
 
   // Result Visual Controls matching Picture 3 & Picture 4
-  const [heatmapOpacity, setHeatmapOpacity] = useState<number>(0.65); // 65% as shown in Picture 3/4
-  const [isOriginalCompare, setIsOriginalCompare] = useState<boolean>(false); // "原图对比" toggle
+  const [heatmapOpacity, setHeatmapOpacity] = useState<number>(0.65);
+  const [isOriginalCompare, setIsOriginalCompare] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [wsiZoom, setWsiZoom] = useState<'4x' | '10x' | '20x' | '40x'>('40x');
 
-  // Picture 4 fixed data constants
-  const fixedSlideUrl = sampleSlidePic4;
-  const fixedFileName = 'liver_HE_0402.png';
+  // Slide display constants
+  const currentFileName = selectedFile?.name || initialSampleForAI?.sampleCode || 'liver_HE_0402.png';
+  const isWsiFile = currentFileName.toLowerCase().endsWith('.ndpi') || currentFileName.toLowerCase().endsWith('.svs');
+  const wsiFormatType = currentFileName.toLowerCase().endsWith('.ndpi') ? 'ndpi' : currentFileName.toLowerCase().endsWith('.svs') ? 'svs' : 'standard';
+
   const fixedConfidence = '92.5%';
   const fixedModelVersion = 'patho-v2.1';
   const fixedCallTime = '2026-08-27 10:32:18';
-  const fixedDuration = '1.24s';
+  const fixedDuration = isWsiFile ? '1.86s (WSI分块解码)' : '1.24s';
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -48,11 +55,12 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
   // If initial sample was passed, trigger analysis
   useEffect(() => {
     if (initialSampleForAI) {
+      setSelectedFile({ name: initialSampleForAI.sampleCode });
       triggerAnalysis(initialSampleForAI.sampleCode || 'liver_HE_0402.png');
     }
   }, [initialSampleForAI]);
 
-  // Listen for fullscreen change
+  // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -61,12 +69,19 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Trigger analysis simulation that always outputs Picture 4 content
+  // Trigger analysis simulation
   const triggerAnalysis = (fileName: string) => {
     setIsAnalyzing(true);
     setFormatError(null);
     setResult(null);
-    setAnalysisStage('切片色彩校准与图像编码中 (HE/IHC Standardizer)...');
+
+    const isWsi = fileName.toLowerCase().endsWith('.ndpi') || fileName.toLowerCase().endsWith('.svs');
+
+    setAnalysisStage(
+      isWsi 
+        ? `解析 ${fileName.toUpperCase()} 全切片金字塔大图 (WSI Pyramid Level 0~7 Tile Loader)...` 
+        : '切片色彩校准与图像编码中 (HE/IHC Standardizer)...'
+    );
 
     setTimeout(() => {
       setAnalysisStage('连接病理组织二分类AI模型推理引擎 (patho-v2.1)...');
@@ -75,7 +90,6 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
         setTimeout(() => {
           setIsAnalyzing(false);
           setAnalysisStage('');
-          // Fixed result matching Picture 4
           setResult({
             classification: '病变组织',
             isLesion: true,
@@ -96,21 +110,28 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
             hotspots: [
               { x: 44, y: 50, radius: 46, intensity: 1.0, label: '高风险异型病变核心区' }
             ],
-            processingTimeMs: 1240,
+            processingTimeMs: isWsi ? 1860 : 1240,
             modelVersion: 'patho-v2.1',
             isFallback: false,
-            timestamp: '2026-08-27T10:32:18.000Z'
+            timestamp: '2026-08-27T10:32:18.000Z',
+            wsiInfo: isWsi ? {
+              format: fileName.toLowerCase().endsWith('.ndpi') ? 'ndpi' : 'svs',
+              scannerBrand: fileName.toLowerCase().endsWith('.ndpi') ? 'Hamamatsu NanoZoomer S360' : 'Leica Aperio CS2',
+              originalDimensions: '94,200 × 76,800 pixels (7.2 GPixels)',
+              pyramidLevels: 8,
+              magFactor: '40X (0.23 μm/px)'
+            } : undefined
           });
         }, 300);
       }, 350);
     }, 300);
   };
 
-  // File Validation Handler & Auto Trigger
+  // Requirement 10: File Validation Handler supporting ndpi and svs
   const handleFileSelection = (file: File) => {
     setFormatError(null);
 
-    // Rule 1: Special check for filename containing "不合格" or "unqualified"
+    // Rule 1: Special check for filename containing "不合格"
     if (file.name.includes('不合格') || file.name.toLowerCase().includes('unqualified')) {
       setFormatError(`上传切片【${file.name}】格式校验不合格：检测到病理切片存在严重组织折叠、模糊、染色异常或不符合病理切片规范，无法进行AI二分类识别，请重新上传合格切片。`);
       setSelectedFile(null);
@@ -118,30 +139,28 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
       return;
     }
 
-    // Rule 2: File Type & Extension Check
-    const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff', 'bmp'];
+    // Rule 2: File Type & Extension Check (Explicitly supports ndpi and svs!)
+    const validExtensions = ['ndpi', 'svs', 'tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'bmp'];
     const extension = file.name.split('.').pop()?.toLowerCase();
     const hasQualifiedName = file.name.includes('合格');
 
     if (!hasQualifiedName && (!extension || !validExtensions.includes(extension))) {
-      setFormatError(`文件格式不符合要求：当前为 .${extension || '未知'} 格式。仅支持病理切片常见格式 (${validExtensions.join(', ').toUpperCase()})`);
+      setFormatError(`文件格式不符合要求：当前为 .${extension || '未知'} 格式。本平台全面支持病理切片格式：NDPI (滨松全切片), SVS (Aperio全切片), TIFF, JPG, PNG, WEBP, BMP`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // Rule 3: File Size Check (Max 30MB)
-    const MAX_SIZE_BYTES = 30 * 1024 * 1024;
+    // Rule 3: File Size Check (Up to 500MB for WSI files, 50MB for regular images)
+    const MAX_SIZE_BYTES = 500 * 1024 * 1024;
     if (file.size > MAX_SIZE_BYTES) {
-      setFormatError(`文件体积过大 (${(file.size / (1024 * 1024)).toFixed(1)}MB)，已超过平台限制 (30MB)。请截取感兴趣区域(ROI)后重试。`);
+      setFormatError(`文件体积过大 (${(file.size / (1024 * 1024)).toFixed(1)}MB)，已超过平台限制 (500MB)。请截取感兴趣区域(ROI)或选择轻量化全切片重试。`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
     setSelectedFile(file);
-
-    // Format validation passed -> Automatically trigger binary classification AI
     triggerAnalysis(file.name);
   };
 
@@ -167,60 +186,14 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
     }
   };
 
-  // Render Heatmap on Canvas (Grad-CAM Jet Colormap matching Picture 4 exactly)
-  useEffect(() => {
-    if (!result || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    if (isOriginalCompare) return;
-
-    // Draw the characteristic Grad-CAM heatmap matching Picture 4:
-    // Core intense focal center slightly to the right of middle-left (x: 45%, y: 50%)
-    const centerX = width * 0.45;
-    const centerY = height * 0.50;
-    const radius = width * 0.38;
-
-    const grad = ctx.createRadialGradient(
-      centerX + width * 0.05,
-      centerY + height * 0.01,
-      radius * 0.04,
-      centerX,
-      centerY,
-      radius
-    );
-
-    // Jet Colormap matching Picture 4 color scale:
-    // Dark brown/red (core 1.0) -> Crimson -> Bright Orange -> Yellow -> Green -> Cyan -> Blue -> Transparent Blue
-    grad.addColorStop(0, 'rgba(128, 0, 0, 0.98)');
-    grad.addColorStop(0.20, 'rgba(230, 0, 0, 0.92)');
-    grad.addColorStop(0.38, 'rgba(255, 140, 0, 0.88)');
-    grad.addColorStop(0.52, 'rgba(255, 230, 0, 0.80)');
-    grad.addColorStop(0.66, 'rgba(0, 230, 220, 0.65)');
-    grad.addColorStop(0.82, 'rgba(0, 80, 240, 0.40)');
-    grad.addColorStop(1, 'rgba(0, 0, 140, 0)');
-
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.fill();
-  }, [result, isOriginalCompare, heatmapOpacity]);
-
   return (
     <div className="space-y-6">
-      {/* Hidden File Input */}
+      {/* Hidden File Input supporting ndpi, svs, tif, etc. */}
       <input
         ref={fileInputRef}
         id="pathology-file-input"
         type="file"
-        accept=".jpg,.jpeg,.png,.webp,.tif,.tiff,.bmp"
+        accept=".ndpi,.svs,.tif,.tiff,.jpg,.jpeg,.png,.webp,.bmp"
         className="hidden"
         onChange={(e) => {
           if (e.target.files && e.target.files[0]) {
@@ -229,49 +202,56 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
         }}
       />
 
-      {/* State 1: When no result is loaded yet, show the Clean Upload Box */}
+      {/* State 1: When no result is loaded yet, show the Clean Upload Box styled with GDC blue gradient */}
       {!result && (
-        <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-5 sm:p-6 text-slate-800">
-          <div className="pb-4 border-b border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-blue-600" />
-              <span>病理组织二分类AI识别模型 (正常 vs 病变)</span>
-            </h2>
-          </div>
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#b4cce2] via-[#c6dcee] to-[#d8e7f5] border border-[#a4c3de] rounded-2xl shadow-xs p-6 sm:p-8 text-slate-800">
+          {/* Subtle cloudy biological background depth */}
+          <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#1e3a8a_1px,transparent_1px)] [background-size:24px_24px]" />
 
-          <div className="mt-5 space-y-4">
-            {/* Spacious Drag & Drop Upload Zone */}
+          <div className="relative z-10 space-y-5">
+            <div className="pb-4 border-b border-[#a4c3de]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-[#102a48] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#0e3b66] text-white flex items-center justify-center shadow-xs">
+                    <Sparkles className="w-4 h-4 text-sky-200" />
+                  </div>
+                  <span>病理组织二分类AI识别模型 (正常 vs 病变)</span>
+                </h2>
+              </div>
+            </div>
+
+            {/* Drag & Drop Upload Zone */}
             <div
               id="upload-dropzone"
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/25 bg-slate-50/60 rounded-2xl p-8 sm:p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all group min-h-[220px]"
+              className="bg-white/95 backdrop-blur-xs border-2 border-dashed border-[#8bb2d4] hover:border-[#0e3b66] hover:bg-white rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center text-center cursor-pointer transition-all group min-h-[220px] shadow-xs"
             >
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mb-3.5 text-blue-600 shadow-xs group-hover:scale-105 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-[#0e3b66] text-white flex items-center justify-center mb-3.5 shadow-sm group-hover:scale-105 transition-transform">
                 <Upload className="w-7 h-7" />
               </div>
 
-              <div className="font-bold text-base text-slate-900 mb-1.5">
+              <div className="font-bold text-base sm:text-lg text-[#102a48] mb-1">
                 点击上传 或 将病理切片图像拖拽至此处
               </div>
-              <p className="text-xs text-slate-500 max-w-md leading-relaxed">
-                支持标准病理数字切片图像：<span className="text-blue-700 font-mono font-semibold">JPG, PNG, WEBP, TIFF, BMP</span>
+              <p className="text-xs text-[#274667] font-medium tracking-wide">
+                支持.NDPI / .SVS/ .TIFF / .JPG /  .JPEG / .PNG / .BMP格式
               </p>
             </div>
 
             {/* Analysis Progress Loading State */}
             {isAnalyzing && (
-              <div className="p-5 bg-blue-50/60 border border-blue-200 rounded-xl space-y-3 text-center">
-                <div className="flex items-center justify-center gap-2 text-blue-800 text-sm font-semibold">
-                  <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+              <div className="p-5 bg-white/95 border border-[#a4c3de] rounded-xl space-y-3 text-center shadow-xs">
+                <div className="flex items-center justify-center gap-2 text-[#0e3b66] text-sm font-bold">
+                  <RefreshCw className="w-4 h-4 animate-spin text-[#0e3b66]" />
                   <span>{analysisStage || 'AI病理显微特征提取与分类模型推理中...'}</span>
                 </div>
-                <div className="w-full max-w-md mx-auto bg-blue-200 h-2 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full w-2/3 animate-pulse rounded-full" />
+                <div className="w-full max-w-md mx-auto bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                  <div className="bg-[#0e3b66] h-full w-2/3 animate-pulse rounded-full" />
                 </div>
-                <p className="text-[11px] text-blue-600/80">
-                  正常与病变组织特征提取 • Grad-CAM类激活热力分布生成
+                <p className="text-[11px] text-[#2c537a]">
+                  支持多层级金字塔特征提取 • Grad-CAM类激活热力分布生成
                 </p>
               </div>
             )}
@@ -296,157 +276,142 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
       {/* State 2: When result is loaded, display exactly the content and layout in Picture 4 & Picture 3 */}
       {result && (
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Main 2-Column Grid: Left Heatmap Card (lg:col-span-8), Right Results Sidebar (lg:col-span-4) */}
+          {/* Main 2-Column Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Card: 识别结果 · 热力图叠加 */}
             <div className="lg:col-span-8 flex flex-col space-y-4">
               <div 
                 ref={viewportRef}
-                className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden"
+                className="bg-white border border-[#a4c3de]/80 rounded-2xl shadow-xs overflow-hidden"
               >
                 {/* Card Header Bar */}
-                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-                  <span className="font-bold text-sm sm:text-base text-slate-800">
-                    识别结果 · 热力图叠加
-                  </span>
-
-                  <button
-                    onClick={toggleFullscreen}
-                    className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors cursor-pointer px-2 py-1 rounded hover:bg-slate-100"
-                    title={isFullscreen ? '退出全屏' : '全屏查看'}
-                  >
-                    {isFullscreen ? (
-                      <>
-                        <Minimize2 className="w-3.5 h-3.5" />
-                        <span>退出全屏</span>
-                      </>
-                    ) : (
-                      <>
-                        <Maximize2 className="w-3.5 h-3.5" />
-                        <span>全屏</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Card Content: 识别结果 · 热力图叠加模块的内容展示图片5 中的内容，颜色样式均一模一样 */}
-                <div className="p-4 sm:p-6 bg-slate-50/40 flex items-center justify-center">
-                  <div className="relative aspect-square w-full max-w-[580px] rounded-xl overflow-hidden shadow-xs flex items-center justify-center border border-slate-200/90 bg-white select-none">
-                    {/* Picture 5 Image: Contains the microscopic slice, Grad-CAM heatmap, ABNORMAL badge, and right 1.0~0.0 colorbar */}
-                    <img
-                      src={picture5ExactHeatmap}
-                      alt="识别结果 · 热力图叠加 (图片5)"
-                      className="w-full h-full object-contain select-none"
-                      style={{ opacity: isOriginalCompare ? (1 - heatmapOpacity * 0.8) : 1 }}
-                      referrerPolicy="no-referrer"
-                    />
-
-                    {/* When user toggles 原图对比, show the base slide comparison */}
-                    {isOriginalCompare && (
-                      <div className="absolute inset-0 w-full h-full bg-black/5 pointer-events-none flex items-center justify-center">
-                        <img
-                          src={fixedSlideUrl}
-                          alt="原图切片"
-                          className="w-full h-full object-cover select-none"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
+                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-black text-sm sm:text-base text-[#102a48]">
+                      识别结果 · 热力图叠加
+                    </span>
+                    {result.wsiInfo && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                        result.wsiInfo.format === 'ndpi'
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      }`}>
+                        WSI {result.wsiInfo.format}
+                      </span>
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Info Notice Banner below Left Card */}
-              <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-2.5 text-xs text-slate-600 shadow-2xs">
-                <Info className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                <span>红色区域为模型判断的高风险病变区域，可通过右侧面板调节热力图透明度。</span>
+                  <div className="flex items-center gap-2">
+                    {/* WSI Zoom Level Controls */}
+                    <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
+                      {(['4x', '10x', '20x', '40x'] as const).map(z => (
+                        <button
+                          key={z}
+                          type="button"
+                          onClick={() => setWsiZoom(z)}
+                          className={`px-2.5 py-0.5 rounded font-mono font-bold transition-all cursor-pointer ${
+                            wsiZoom === z ? 'bg-[#0e3b66] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {z}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={toggleFullscreen}
+                      className="flex items-center gap-1 text-xs text-slate-600 hover:text-[#0e3b66] transition-colors cursor-pointer px-2.5 py-1 rounded hover:bg-slate-100 border border-transparent hover:border-slate-200"
+                      title={isFullscreen ? '退出全屏' : '全屏查看'}
+                    >
+                      {isFullscreen ? (
+                        <>
+                          <Minimize2 className="w-3.5 h-3.5" />
+                          <span>退出全屏</span>
+                        </>
+                      ) : (
+                        <>
+                          <Maximize2 className="w-3.5 h-3.5" />
+                          <span>全屏</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card Content: Exact Picture 5 style with Grad-CAM heatmap overlay */}
+                <div className="p-4 sm:p-6 bg-slate-50/40 flex items-center justify-center">
+                  <div className="relative aspect-square w-full max-w-[580px] rounded-xl overflow-hidden shadow-xs flex items-center justify-center border border-slate-200/90 bg-white select-none">
+                    <img
+                      src={picture5ExactHeatmap}
+                      alt="识别结果 · 热力图叠加"
+                      className="w-full h-full object-contain select-none"
+                      style={{ opacity: isOriginalCompare ? (1 - heatmapOpacity * 0.8) : 1 }}
+                    />
+                  </div>
+                </div>
+
+                {/* WSI Scanner Information Banner */}
+                {result.wsiInfo && (
+                  <div className="p-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 px-5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-700">WSI扫描仪：</span>
+                      <span>{result.wsiInfo.scannerBrand}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                      <span>像素规格: {result.wsiInfo.originalDimensions}</span>
+                      <span>金字塔层数: {result.wsiInfo.pyramidLevels}层</span>
+                      <span>光学等效: {result.wsiInfo.magFactor}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Right Column: Cards & Controls matching Picture 4 & 3 */}
-            <div className="lg:col-span-4 space-y-4">
-              {/* Top Verdict Card: large red "病变组织" */}
-              <div className="py-6 px-4 rounded-2xl border text-center transition-all bg-red-50/80 border-red-200/90 shadow-2xs">
-                <h1 className="text-3xl sm:text-4xl font-black tracking-wide text-red-500">
-                  病变组织
-                </h1>
-              </div>
-
-              {/* Confidence Text below Verdict Card: 92.5% */}
-              <div className="text-center py-1">
-                <span className="text-xs text-slate-600 font-medium">模型预测置信度 </span>
-                <span className="text-xl font-bold text-slate-900 font-mono ml-1">
-                  {fixedConfidence}
-                </span>
-              </div>
-
-              {/* Middle Card: 上传图片 Controls */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                <div className="text-sm font-bold text-slate-800">上传图片</div>
-                
-                {/* Filename matching Picture 3/4 */}
-                <div className="text-xs text-slate-500 font-mono truncate" title={fixedFileName}>
-                  {fixedFileName}
+            {/* Right Card: Picture 4 exact styling with GDC theme */}
+            <div className="lg:col-span-4 flex flex-col space-y-4">
+              {/* Top Card: 识别结果与病变类型 */}
+              <div className="bg-white border border-[#a4c3de]/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+                <div className="text-xs font-semibold text-slate-500">切片名称</div>
+                <div className="font-mono text-[#102a48] font-bold text-sm truncate" title={currentFileName}>
+                  {currentFileName}
                 </div>
 
-                {/* Transparency Slider */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-xs text-slate-600">
-                    <span>透明度</span>
-                    <span className="font-mono text-slate-500">{Math.round(heatmapOpacity * 100)}%</span>
+                {/* Classification Banner */}
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-rose-600 font-medium">识别结果</div>
+                    <div className="text-xl font-black text-rose-600">病变组织</div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={heatmapOpacity}
-                    onChange={(e) => setHeatmapOpacity(Number(e.target.value))}
-                    className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
-                  />
+                  <div className="text-right">
+                    <div className="text-[11px] text-slate-500">置信度</div>
+                    <div className="text-xl font-bold font-mono text-slate-900">{fixedConfidence}</div>
+                  </div>
                 </div>
 
-                {/* Original Image Compare Switch */}
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-slate-600">原图对比</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsOriginalCompare(!isOriginalCompare)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
-                      isOriginalCompare ? 'bg-blue-600' : 'bg-slate-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        isOriginalCompare ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
                 </div>
-              </div>
 
               {/* Bottom Card: 识别参数 */}
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
-                <div className="text-sm font-bold text-slate-800">识别参数</div>
+              <div className="bg-white border border-[#a4c3de]/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+                <div className="text-sm font-bold text-[#102a48]">识别参数</div>
 
                 <div className="space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">模型版本</span>
-                    <span className="font-mono text-slate-800 font-medium">
+                    <span className="text-slate-500 font-medium">模型版本</span>
+                    <span className="font-mono text-slate-800 font-bold">
                       {fixedModelVersion}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">调用时间</span>
-                    <span className="font-mono text-slate-800">
+                    <span className="text-slate-500 font-medium">调用时间</span>
+                    <span className="font-mono text-slate-800 font-semibold">
                       {fixedCallTime}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">耗时</span>
-                    <span className="font-mono text-slate-800 font-semibold">
+                    <span className="text-slate-500 font-medium">耗时</span>
+                    <span className="font-mono text-slate-800 font-bold">
                       {fixedDuration}
                     </span>
                   </div>
@@ -461,7 +426,7 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
                   setFormatError(null);
                   fileInputRef.current?.click();
                 }}
-                className="w-full py-2.5 px-4 rounded-full border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-lg bg-[#0e3b66] hover:bg-[#164a7c] text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99] cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>重新上传</span>

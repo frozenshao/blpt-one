@@ -1,45 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
   XAxis, 
   YAxis, 
   Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Legend 
+  ResponsiveContainer 
 } from 'recharts';
 import { 
-  HeartPulse, 
   CheckCircle2, 
   AlertCircle, 
-  Dna, 
   Layers, 
   ShieldCheck, 
-  Filter, 
   FlaskConical, 
-  Radio, 
-  Activity,
-  FileSpreadsheet
+  X,
+  Calendar
 } from 'lucide-react';
+
 import { PathologySample } from '../types/pathology';
 import { RESEARCH_PROJECTS } from '../data/toxicologyStatsData';
 import { BackgroundLesionsSection } from './stats/BackgroundLesionsSection';
 import { ProjectLesionsSection } from './stats/ProjectLesionsSection';
 import { CrossStrainSection } from './stats/CrossStrainSection';
+import { TestArticleTargetOrgansSection } from './stats/TestArticleTargetOrgansSection';
 
 interface StatsDashboardProps {
   samples: PathologySample[];
+  customCohortSamples?: PathologySample[] | null;
+  onClearCustomCohort?: () => void;
 }
 
-const COLORS = ['#2563eb', '#0284c7', '#4f46e5', '#7c3aed', '#059669', '#d97706', '#dc2626'];
-const BINARY_COLORS = ['#10b981', '#ef4444'];
+export type TimeRange = 'all' | '1year' | '3years' | '5years' | 'custom';
 
-export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
-  // 1. 研究项目筛选条件，单选，默认为全部
+export const StatsDashboard: React.FC<StatsDashboardProps> = ({ 
+  samples, 
+  customCohortSamples, 
+  onClearCustomCohort 
+}) => {
+  // 项目标签筛选（单选，默认为全部）
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+
+  // 项目选中全部后增加的时间筛选条件：全部，近一年，近3年，近5年，自定义。默认选中全部
+  const [timeFilter, setTimeFilter] = useState<TimeRange>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>('2024-01-01');
+  const [customEndDate, setCustomEndDate] = useState<string>('2026-10-31');
 
   const currentProject = RESEARCH_PROJECTS.find(p => p.id === selectedProjectId) || RESEARCH_PROJECTS[0];
 
@@ -47,7 +51,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
   const sumSubSamples = subProjects.reduce((sum, p) => sum + p.sampleCount, 0);
   const sumSubPositives = subProjects.reduce((sum, p) => sum + p.positiveCount, 0);
 
-  // Dynamic Metrics based on selected project (全部下的样本数据量为子项目样本数量之和)
+  // Dynamic Metrics based on selected project
   const total = selectedProjectId === 'all' 
     ? sumSubSamples 
     : currentProject.sampleCount;
@@ -61,264 +65,343 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ samples }) => {
     ? `${((lesionCount / total) * 100).toFixed(1)}%`
     : currentProject.positiveRate;
 
-  // Organ distribution
-  const organCounts: Record<string, number> = {};
-  if (selectedProjectId === 'exp-2026001') {
-    organCounts['肝'] = 180;
-    organCounts['肾'] = 120;
-    organCounts['肺'] = 80;
-    organCounts['脾'] = 60;
-    organCounts['心'] = 40;
-  } else if (selectedProjectId === 'exp-2026002') {
-    organCounts['肾'] = 140;
-    organCounts['肝'] = 100;
-    organCounts['心'] = 40;
-    organCounts['胃'] = 25;
-    organCounts['脾'] = 15;
-  } else {
-    organCounts['肝'] = 280;
-    organCounts['肾'] = 260;
-    organCounts['肺'] = 80;
-    organCounts['心'] = 80;
-    organCounts['脾'] = 75;
-    organCounts['胃'] = 25;
+  // Time-based statistics when selectedProjectId === 'all'
+  const timeStats = useMemo(() => {
+    switch (timeFilter) {
+      case '1year': // 2026
+        return { total: 130, normals: 56, lesions: 74, cumulative: 1680 };
+      case '3years': // 2024-2026
+        return { total: 980, normals: 446, lesions: 534, cumulative: 1680 };
+      case '5years': // 2022-2026
+        return { total: 1190, normals: 574, lesions: 616, cumulative: 1680 };
+      case 'custom':
+        return { total: 720, normals: 350, lesions: 370, cumulative: 1680 };
+      case 'all':
+      default:
+        return { total: 1680, normals: 864, lesions: 816, cumulative: 1680 };
+    }
+  }, [timeFilter]);
+
+  const currentTotal = selectedProjectId === 'all' ? timeStats.total : total;
+  const currentNormal = selectedProjectId === 'all' ? timeStats.normals : normalCount;
+  const currentLesion = selectedProjectId === 'all' ? timeStats.lesions : lesionCount;
+  const normalPercentage = currentTotal > 0 ? ((currentNormal / currentTotal) * 100).toFixed(1) : '0';
+  const lesionPercentage = currentTotal > 0 ? ((currentLesion / currentTotal) * 100).toFixed(1) : '0';
+
+  // Custom cohort statistics for user custom cohort
+  const isCustomCohortActive = !!(customCohortSamples && customCohortSamples.length > 0);
+
+  const cohortTotal = customCohortSamples ? customCohortSamples.length : 0;
+  const cohortLesionCount = customCohortSamples ? customCohortSamples.filter(s => s.isLesion).length : 0;
+  const cohortNormalCount = cohortTotal - cohortLesionCount;
+  const cohortRate = cohortTotal > 0 ? `${((cohortLesionCount / cohortTotal) * 100).toFixed(1)}%` : '0%';
+
+  // Cohort species counts
+  const cohortOrganMap: Record<string, number> = {};
+  const cohortTestArticleMap: Record<string, number> = {};
+
+  if (customCohortSamples) {
+    customCohortSamples.forEach(s => {
+      if (s.organ) cohortOrganMap[s.organ] = (cohortOrganMap[s.organ] || 0) + 1;
+      const cat = s.testArticleCategory || '其他';
+      cohortTestArticleMap[cat] = (cohortTestArticleMap[cat] || 0) + 1;
+    });
   }
-  const organData = Object.entries(organCounts).map(([name, count]) => ({ name, count }));
 
-  // Binary data
-  const binaryData = [
-    { name: '正常组织 (Normal)', value: normalCount },
-    { name: '病变组织 (Lesion)', value: lesionCount }
-  ];
+  const cohortOrganData = Object.entries(cohortOrganMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, count]) => ({ name, count }));
 
-  // Species distribution
-  const speciesData = selectedProjectId === 'exp-2026001'
-    ? [{ name: 'C57BL/6J 小鼠', value: 160 }]
-    : selectedProjectId === 'exp-2026002'
-    ? [{ name: 'SD 大鼠 (Sprague-Dawley)', value: 100 }]
-    : [
-        { name: 'C57BL/6J 小鼠', value: 160 },
-        { name: 'SD 大鼠 (Sprague-Dawley)', value: 100 }
-      ];
+  const cohortTestData = Object.entries(cohortTestArticleMap)
+    .map(([name, count]) => ({ name, count }));
 
-  const tooltipStyle = { 
-    backgroundColor: '#ffffff', 
-    borderColor: '#e2e8f0', 
-    borderRadius: 8, 
-    fontSize: 12, 
-    color: '#0f172a',
-    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+  const tooltipStyle = {
+    backgroundColor: '#ffffff',
+    borderColor: '#bcd7ee',
+    borderRadius: 8,
+    fontSize: 12,
+    color: '#102a48',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
   };
 
   return (
     <div className="space-y-6">
-      {/* 1. 统计分析 */}
-      <div className="bg-white border border-slate-200/90 p-4 sm:p-5 rounded-2xl shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-200">
-              <FlaskConical className="w-5 h-5" />
+      {/* Custom Cohort Active Bar */}
+      {isCustomCohortActive && (
+        <div className="bg-gradient-to-r from-[#18446b] via-[#245887] to-[#18446b] text-white p-5 rounded-2xl shadow-md border border-[#0e3b66] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#18446b] tracking-wider uppercase">
+                  已启用自定义分析队列
+                </span>
+                <span className="text-xs text-sky-200">
+                  当前统计视图已锁定为勾选的样本集
+                </span>
+              </div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>自定义勾选切片样本统计分析</span>
+                <span className="font-mono text-white text-base">({cohortTotal})</span>
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClearCustomCohort}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold backdrop-blur-xs border border-white/30 transition-all cursor-pointer self-start sm:self-auto"
+            >
+              <X className="w-4 h-4" />
+              <span>退出勾选统计 • 查看全库</span>
+            </button>
+          </div>
+
+          {/* Quick Metrics of Selected Cohort */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-900">
+            <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
+              <div className="text-[11px] text-slate-500 font-medium">已选切片总量</div>
+              <div className="text-xl font-bold font-mono text-[#102a48]">{cohortTotal}</div>
+            </div>
+            <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
+              <div className="text-[11px] text-slate-500 font-medium">正常切片数</div>
+              <div className="text-xl font-bold font-mono text-emerald-600">{cohortNormalCount}</div>
+            </div>
+            <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
+              <div className="text-[11px] text-slate-500 font-medium">异常切片数</div>
+              <div className="text-xl font-bold font-mono text-rose-600">{cohortLesionCount}</div>
+            </div>
+            <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
+              <div className="text-[11px] text-slate-500 font-medium">占比</div>
+              <div className="text-xl font-bold font-mono text-[#0e3b66]">{cohortRate}</div>
+            </div>
+          </div>
+
+          {/* Custom Cohort Visual Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div className="bg-white rounded-xl p-4 shadow-2xs text-slate-900 border border-slate-100">
+              <h4 className="text-xs font-bold text-[#102a48] mb-2">勾选样本各系统/脏器分布</h4>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cohortOrganData}>
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                    <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="count" name="切片例数" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-2xs text-slate-900 border border-slate-100">
+              <h4 className="text-xs font-bold text-[#102a48] mb-2">勾选样本受试物分类构成</h4>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={cohortTestData}>
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                    <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="count" name="样本数" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Global Analysis Navigation Bar: GDC Atmospheric Sky Blue Style */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#b4cce2] via-[#c6dcee] to-[#d8e7f5] border border-[#a4c3de] p-5 sm:p-6 rounded-2xl shadow-xs space-y-4">
+        {/* Subtle biological texture */}
+        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#1e3a8a_1px,transparent_1px)] [background-size:24px_24px]" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#a4c3de]/70 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-[#0e3b66] text-white flex items-center justify-center shadow-xs">
+              <FlaskConical className="w-4 h-4 text-sky-200" />
             </span>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">
-              统计分析
+            <h2 className="text-base sm:text-lg font-black text-[#102a48] tracking-tight">
+              统计分析中心
             </h2>
           </div>
-
-          <div className="flex items-center gap-1.5 self-start sm:self-center text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-            <Radio className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-            <span>当前筛选项目：<strong className="text-slate-900">{currentProject.name}</strong></span>
-          </div>
         </div>
 
-        {/* Radio Pill Tabs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-          {RESEARCH_PROJECTS.map((proj) => {
-            const isSelected = selectedProjectId === proj.id;
-            return (
-              <button
-                key={proj.id}
-                type="button"
-                onClick={() => setSelectedProjectId(proj.id)}
-                className={`relative flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-50/80 border-blue-500 shadow-xs ring-2 ring-blue-500/20'
-                    : 'bg-slate-50/60 border-slate-200/90 hover:bg-slate-100/70 hover:border-slate-300'
-                }`}
-              >
-                {/* Radio Indicator */}
-                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                  isSelected 
-                    ? 'border-blue-600 bg-blue-600' 
-                    : 'border-slate-300 bg-white'
-                }`}>
-                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
+        {/* Project Tags Selector */}
+        <div className="relative z-10 space-y-3">
+          <div className="flex items-center justify-between text-xs text-[#204467]">
+            <span className="font-bold text-[#102a48]">
+              项目标签筛选（单选）：
+            </span>
+          </div>
 
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={`text-xs font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-800'}`}>
-                      {proj.name}
-                    </span>
-                  </div>
-                  {proj.id !== 'all' && (
-                    <div className="text-[11px] text-slate-500 truncate">
-                      {proj.duration} • {proj.studyCode}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+            {RESEARCH_PROJECTS.map((proj) => {
+              const isSelected = selectedProjectId === proj.id;
+              return (
+                <button
+                  key={proj.id}
+                  type="button"
+                  onClick={() => setSelectedProjectId(proj.id)}
+                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#0e3b66] text-white border-[#0e3b66] shadow-sm ring-2 ring-[#0e3b66]/30'
+                      : 'bg-white/90 hover:bg-white text-slate-800 border-[#bcd7ee]/80 hover:border-[#0e3b66] shadow-2xs'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <div className={`w-3 h-3 rounded-full border flex items-center justify-center shrink-0 ${
+                      isSelected ? 'border-white bg-white' : 'border-slate-300 bg-white'
+                    }`}>
+                      {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0e3b66]" />}
                     </div>
-                  )}
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <span className="text-[11px] text-slate-400">
-                      样本: {proj.id === 'all' ? sumSubSamples : proj.sampleCount}
+                    <span className={`text-[10px] font-mono ${isSelected ? 'text-sky-200' : 'text-slate-400'}`}>
+                      {proj.sampleCount}例
                     </span>
                   </div>
+
+                  <div className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-[#102a48]'}`} title={proj.name}>
+                    {proj.name}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 项目选中全部后，增加时间筛选条件：全部，近一年，近3年，近5年，自定义。默认选中全部 */}
+          {selectedProjectId === 'all' && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#a4c3de]/60">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#0e3b66]" />
+                <span className="text-xs font-bold text-[#102a48]">时间范围：</span>
+                <div className="inline-flex items-center bg-white/90 p-1 rounded-lg border border-[#bcd7ee] text-xs">
+                  {(['all', '1year', '3years', '5years', 'custom'] as const).map((key) => {
+                    const labels: Record<TimeRange, string> = {
+                      all: '全部',
+                      '1year': '近一年',
+                      '3years': '近3年',
+                      '5years': '近5年',
+                      custom: '自定义'
+                    };
+                    const isSelected = timeFilter === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTimeFilter(key)}
+                        className={`px-3 py-1 rounded-md font-medium transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0e3b66] text-white shadow-xs font-semibold'
+                            : 'text-[#102a48]/70 hover:text-[#102a48] hover:bg-slate-200/60'
+                        }`}
+                      >
+                        {labels[key]}
+                      </button>
+                    );
+                  })}
                 </div>
-              </button>
-            );
-          })}
+              </div>
+
+              {/* 自定义时间范围输入框 */}
+              {timeFilter === 'custom' && (
+                <div className="flex items-center gap-2 text-xs bg-white border border-[#bcd7ee] px-3 py-1 rounded-lg shadow-2xs">
+                  <span className="text-slate-500">从:</span>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="bg-transparent border-b border-slate-300 focus:outline-hidden text-[#102a48] text-xs"
+                  />
+                  <span className="text-slate-500">至:</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="bg-transparent border-b border-slate-300 focus:outline-hidden text-[#102a48] text-xs"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Top Metric Cards: Responsive to Selected Project */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-slate-200/90 p-4 rounded-xl shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
-            <Layers className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500">
-              病理切片样本总数
+      {/* Project Lesions Analytics */}
+      <div className="space-y-6">
+        {/* Top Metric Cards: GDC Unified Summary Bar from reference image */}
+        <div className="bg-white border border-[#a4c3de] rounded-xl shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#bcd7ee]/60">
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-full bg-[#f0f6fc] border border-[#bcd7ee] flex items-center justify-center text-[#0e3b66] shrink-0">
+              <Layers className="w-5 h-5" />
             </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{total}</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/90 p-4 rounded-xl shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500">正常组织切片基线</div>
-            <div className="text-2xl font-black text-emerald-600 font-mono">{normalCount}</div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200/90 p-4 rounded-xl shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500">
-              病理异常/病变切片
+            <div>
+              <div className="text-xs font-medium text-slate-500">
+                切片总数
+              </div>
+              <div className="text-2xl font-black text-[#102a48] font-mono tracking-tight">{currentTotal}</div>
             </div>
-            <div className="text-2xl font-black text-rose-600 font-mono">{lesionCount}</div>
+          </div>
+
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-full bg-[#ecfdf5] border border-[#a7f3d0] flex items-center justify-center text-emerald-600 shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-slate-500">正常切片数</div>
+              <div className="text-2xl font-black text-emerald-600 font-mono tracking-tight">{currentNormal}</div>
+              {selectedProjectId === 'all' && (
+                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                  占比 {normalPercentage}%
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-full bg-[#fff1f2] border border-[#fecdd3] flex items-center justify-center text-[#f43f5e] shrink-0">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-slate-500">
+                异常切片数
+              </div>
+              <div className="text-2xl font-black text-[#f43f5e] font-mono tracking-tight">{currentLesion}</div>
+              {selectedProjectId === 'all' && (
+                <div className="text-[10px] text-[#f43f5e] font-medium mt-0.5">
+                  占比 {lesionPercentage}%
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-4 flex items-center gap-4">
+            <div className="w-11 h-11 rounded-full bg-[#fffbeb] border border-[#fde68a] flex items-center justify-center text-amber-600 shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-medium text-slate-500">
+                {selectedProjectId === 'all' ? '历史累计入库' : '病变率'}
+              </div>
+              <div className="text-2xl font-black text-amber-600 font-mono tracking-tight">
+                {selectedProjectId === 'all' ? '1680' : lesionRate}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200/90 p-4 rounded-xl shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs text-slate-500">病变阳性检出率</div>
-            <div className="text-2xl font-black text-amber-600 font-mono">{lesionRate}</div>
-          </div>
-        </div>
-      </div>
+        {/* 背景性病变统计模块 */}
+        <BackgroundLesionsSection projectId={selectedProjectId} timeRange={timeFilter} />
 
-      {/* 3. 背景性病变统计模块 (Always Shown as Requested: 雄性SD大鼠，病变-肝脏小肉芽肿，发生率XX。雌性的发生率X) */}
-      <BackgroundLesionsSection projectId={selectedProjectId} />
+        {/* “项目筛选”选中具体项目时显示“病变对照统计”模块 */}
+        {selectedProjectId !== 'all' && (
+          <ProjectLesionsSection projectId={selectedProjectId} />
+        )}
 
-      {/* 4. “研究项目”选中某一个具体项目时，增加显示“各类病变统计”模块 */}
-      {selectedProjectId !== 'all' && (
-        <ProjectLesionsSection projectId={selectedProjectId} />
-      )}
+        {/* “项目筛选”选中“全部”时显示“不同动物种属病变对比统计”模块 */}
+        {selectedProjectId === 'all' && (
+          <CrossStrainSection timeRange={timeFilter} />
+        )}
 
-      {/* 5. “研究项目”选中全部时，增加显示“不同品系动物病变统计”模块 */}
-      {selectedProjectId === 'all' && (
-        <CrossStrainSection />
-      )}
-
-      {/* General Pathology Distribution Charts (Note: “切片染色与制备技术分类” is completely deleted as requested!) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Organ Distribution Bar Chart */}
-        <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <HeartPulse className="w-4 h-4 text-blue-600" />
-            <span>
-              脏器样本分布统计
-            </span>
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={organData}>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="count" fill="#2563eb" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Normal vs Lesion Binary Pie */}
-        <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>
-              正常组织 vs 病变组织二分类比例
-            </span>
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={binaryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={85}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
-                >
-                  {binaryData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={BINARY_COLORS[index % BINARY_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Animal Species Breakdown */}
-        <div className="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs lg:col-span-2">
-          <h3 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Dna className="w-4 h-4 text-indigo-600" />
-            <span>
-              样本来源动物种属与品系构成
-            </span>
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={speciesData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, value }: { name?: string; value?: number }) => `${name || ''}: ${value || 0}`}
-                >
-                  {speciesData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: '11px', color: '#475569' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {/* 不同受试物的靶器官分析 */}
+        <TestArticleTargetOrgansSection timeRange={timeFilter} />
       </div>
     </div>
   );

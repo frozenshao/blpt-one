@@ -6,18 +6,9 @@ import {
   RotateCcw, 
   CheckCircle2, 
   AlertCircle, 
-  HeartPulse, 
   Tag, 
-  Activity, 
   Eye, 
   EyeOff, 
-  Layers, 
-  Calendar,
-  UserCheck,
-  Dna,
-  FileText,
-  FlaskConical,
-  Sparkles,
   ChevronRight,
   GitFork
 } from 'lucide-react';
@@ -30,6 +21,228 @@ interface SampleDetailPageProps {
   onSelectSample?: (sample: PathologySample) => void;
 }
 
+interface DetailAnnotationItem {
+  id: string;
+  colorName: string;
+  color: string;
+  type: string;
+  organ: string;
+  description: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface RelatedSliceItem {
+  id: string;
+  sampleCode: string;
+  organ: string;
+  system: string;
+  isLesion: boolean;
+  lesionName: string;
+  pathologyDiagnosis: string;
+  samplingDate: string;
+  sliceType: string;
+  thumbnailUrl: string;
+  imageUrl: string;
+  species: string;
+  strain: string;
+  projectName: string;
+  experimentGroup: string;
+  testArticle: string;
+  testArticleCategory: string;
+  testArticleSubCategory?: string;
+  gender: string;
+  ageWeeks: number;
+}
+
+const DETAIL_ANNOTATIONS: DetailAnnotationItem[] = [
+  {
+    id: 'ann-new-1',
+    colorName: '黄色',
+    color: '#eab308',
+    type: '器官轮廓',
+    organ: '肺脏',
+    description: '肺脏器官',
+    x: 20,
+    y: 22,
+    width: 32,
+    height: 32
+  },
+  {
+    id: 'ann-new-2',
+    colorName: '蓝色',
+    color: '#2563eb',
+    type: '正常组织',
+    organ: '肝脏',
+    description: '正常肝脏-中央静脉区',
+    x: 55,
+    y: 26,
+    width: 30,
+    height: 28
+  },
+  {
+    id: 'ann-new-3',
+    colorName: '红色',
+    color: '#dc2626',
+    type: '病变组织',
+    organ: '肾脏',
+    description: '皮质/髓质，单形核细胞浸润；多灶性, 轻微',
+    x: 32,
+    y: 56,
+    width: 38,
+    height: 30
+  }
+];
+
+// 为用户指定的三条核心数据配置高质量的同动物/同组别关联切片
+const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
+  // 1. E02_Mou_C57_MA103_S02_Liv (C57小鼠 肝脏长毒 -> 关联同实验动物的肾脏与脾脏切片)
+  'E02_Mou_C57_MA103_S02_Liv': [
+    {
+      id: 'rel-c57-01',
+      sampleCode: 'E02_Mou_C57_MA103_S01_Kid',
+      organ: '肾脏',
+      system: '泌尿系统',
+      isLesion: true,
+      lesionName: '近端肾小管上皮空泡变性',
+      pathologyDiagnosis: '近曲小管轻度脂质沉着伴微量蛋白管型',
+      samplingDate: '2026-03-12',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_kidney_1789719241512.jpg',
+      imageUrl: '/images/pathology_slide_kidney_1789719241512.jpg',
+      species: 'C57BL/6 小鼠',
+      strain: 'C57BL/6J',
+      projectName: '长期毒性试验',
+      experimentGroup: '给药高剂量组',
+      testArticle: '抗PD-1/VEGF双特异性抗体 (100mg/kg)',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '抗体',
+      gender: '雄性',
+      ageWeeks: 16
+    },
+    {
+      id: 'rel-c57-02',
+      sampleCode: 'E02_Mou_C57_MA103_S03_Spl',
+      organ: '脾脏',
+      system: '淋巴系统',
+      isLesion: false,
+      lesionName: '正常白髓小体形态',
+      pathologyDiagnosis: '脾实质小体清晰，生发中心未见萎缩或坏死',
+      samplingDate: '2026-03-12',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
+      imageUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
+      species: 'C57BL/6 小鼠',
+      strain: 'C57BL/6J',
+      projectName: '长期毒性试验',
+      experimentGroup: '给药高剂量组',
+      testArticle: '抗PD-1/VEGF双特异性抗体 (100mg/kg)',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '抗体',
+      gender: '雄性',
+      ageWeeks: 16
+    }
+  ],
+
+  // 2. E03_NHP_CR_LG021_S02_Lng (食蟹猴/犬 肺切片 -> 关联同实验动物的气管与心脏切片)
+  'E03_NHP_CR_LG021_S02_Lng': [
+    {
+      id: 'rel-nhp-01',
+      sampleCode: 'E03_NHP_CR_LG021_S01_Tra',
+      organ: '气管/支气管',
+      system: '呼吸系统',
+      isLesion: false,
+      lesionName: '黏膜纤毛上皮完整',
+      pathologyDiagnosis: '支气管假复层纤毛柱状上皮结构完好，未见异型增殖与炎性浸润',
+      samplingDate: '2026-02-18',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_lung_1789719230402.jpg',
+      imageUrl: '/images/pathology_slide_lung_1789719230402.jpg',
+      species: '比格犬',
+      strain: '比格犬 (Beagle Dog)',
+      projectName: '生殖毒性试验',
+      experimentGroup: 'AAV基因治疗产品高剂量组',
+      testArticle: 'AAV9靶向基因治疗载体制剂',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '基因治疗产品',
+      gender: '雌性',
+      ageWeeks: 36
+    },
+    {
+      id: 'rel-nhp-02',
+      sampleCode: 'E03_NHP_CR_LG021_S03_Hrt',
+      organ: '心脏',
+      system: '心血管系统',
+      isLesion: true,
+      lesionName: '心肌间质局灶轻微纤维化',
+      pathologyDiagnosis: '左心室肌层局灶性胶原纤维沉积伴轻度微血管壁增厚',
+      samplingDate: '2026-02-18',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_heart_1789719246101.jpg',
+      imageUrl: '/images/pathology_slide_heart_1789719246101.jpg',
+      species: '比格犬',
+      strain: '比格犬 (Beagle Dog)',
+      projectName: '生殖毒性试验',
+      experimentGroup: 'AAV基因治疗产品高剂量组',
+      testArticle: 'AAV9靶向基因治疗载体制剂',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '基因治疗产品',
+      gender: '雌性',
+      ageWeeks: 36
+    }
+  ],
+
+  // 3. E02_Mou_C57_MA101_S01_Liv-Kid (人源PDX模型 肝肾联合浸润切片 -> 关联同动物的原发肺瘤与外周淋巴结切片)
+  'E02_Mou_C57_MA101_S01_Liv-Kid': [
+    {
+      id: 'rel-pdx-01',
+      sampleCode: 'E02_Mou_C57_MA101_S02_Lng',
+      organ: '肺脏',
+      system: '呼吸系统',
+      isLesion: true,
+      lesionName: '浸润性腺癌原发瘤灶',
+      pathologyDiagnosis: '原发性异型腺管状瘤细胞密集排列，可见间质浸润与纤维反应',
+      samplingDate: '2026-03-08',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_lung_1789719230402.jpg',
+      imageUrl: '/images/pathology_slide_lung_1789719230402.jpg',
+      species: '人源异种移植模型(PDX)',
+      strain: 'NOD/SCID/IL2rγ-/- (NCG)',
+      projectName: '致癌性试验',
+      experimentGroup: '靶向治疗致癌性监测组',
+      testArticle: '小分子激酶抑制剂 TKI-988',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '小分子化药',
+      gender: '雌性',
+      ageWeeks: 8
+    },
+    {
+      id: 'rel-pdx-02',
+      sampleCode: 'E02_Mou_C57_MA101_S03_Lym',
+      organ: '淋巴结',
+      system: '淋巴系统',
+      isLesion: false,
+      lesionName: '反应性增生',
+      pathologyDiagnosis: '淋巴窦扩张伴巨噬细胞反应，未见转移瘤细胞巢累及',
+      samplingDate: '2026-03-08',
+      sliceType: 'HE染色',
+      thumbnailUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
+      imageUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
+      species: '人源异种移植模型(PDX)',
+      strain: 'NOD/SCID/IL2rγ-/- (NCG)',
+      projectName: '致癌性试验',
+      experimentGroup: '靶向治疗致癌性监测组',
+      testArticle: '小分子激酶抑制剂 TKI-988',
+      testArticleCategory: '药品',
+      testArticleSubCategory: '小分子化药',
+      gender: '雌性',
+      ageWeeks: 8
+    }
+  ]
+};
+
 export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
   sample,
   allSamples = [],
@@ -41,18 +254,24 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showAnnotations, setShowAnnotations] = useState(true);
-  const [brightness, setBrightness] = useState(100);
-  const [contrast, setContrast] = useState(100);
-  const [activeTab, setActiveTab] = useState<'structured' | 'annotations' | 'animal' | 'technical' | 'related'>('structured');
-  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'details' | 'annotations' | 'related'>('details');
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>('ann-new-1');
 
-  // Find other slices related to the same animal (by animalId or species+strain+group)
-  const relatedAnimalSlices = allSamples.filter(
+  const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
+  const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
+
+  // 优先匹配当前样本是否有配置的专属关联切片数据
+  const specificSlices = SPECIFIC_RELATED_SLICES[displayCode] || SPECIFIC_RELATED_SLICES[sample.sampleCode];
+
+  // 默认由 allSamples 提取关联切片
+  const fallbackSlices = allSamples.filter(
     s => s.id !== sample.id && (
       (sample.animalId && s.animalId && s.animalId === sample.animalId) ||
       (sample.strain && s.strain && s.strain === sample.strain && s.experimentGroup === sample.experimentGroup)
     )
   );
+
+  const activeRelatedSlices = (specificSlices && specificSlices.length > 0) ? specificSlices : fallbackSlices;
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -74,111 +293,91 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
   const handleResetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
-    setBrightness(100);
-    setContrast(100);
+  };
+
+  const handleFocusAnnotation = (ann: DetailAnnotationItem) => {
+    setSelectedAnnotationId(ann.id);
+    setZoom(1.8);
+    const targetX = (50 - (ann.x + ann.width / 2)) * 3;
+    const targetY = (50 - (ann.y + ann.height / 2)) * 3;
+    setPan({ x: targetX, y: targetY });
+  };
+
+  const handleNavigateToSlice = (item: any) => {
+    if (!onSelectSample) return;
+    // 如果是现有 allSamples 中的样本直接传递
+    const existing = allSamples.find(s => s.id === item.id || s.sampleCode.includes(item.sampleCode));
+    if (existing) {
+      onSelectSample(existing);
+    } else {
+      // 构造完整样本对象供详情展示
+      const constructedSample: PathologySample = {
+        ...sample,
+        id: item.id,
+        sampleCode: item.sampleCode,
+        organ: item.organ,
+        system: item.system as any,
+        isLesion: item.isLesion,
+        lesionName: item.lesionName,
+        pathologyDiagnosis: item.pathologyDiagnosis,
+        samplingDate: item.samplingDate,
+        sliceType: item.sliceType as any,
+        thumbnailUrl: item.thumbnailUrl,
+        imageUrl: item.imageUrl,
+        species: (item.species || sample.species) as any,
+        strain: item.strain || sample.strain,
+        projectName: (item.projectName || sample.projectName) as any,
+        experimentGroup: item.experimentGroup || sample.experimentGroup,
+        testArticle: item.testArticle || sample.testArticle,
+        testArticleCategory: (item.testArticleCategory || sample.testArticleCategory) as any,
+        testArticleSubCategory: item.testArticleSubCategory || sample.testArticleSubCategory,
+        gender: (item.gender || sample.gender) as any,
+        ageWeeks: item.ageWeeks || sample.ageWeeks,
+        structuredDescription: {
+          ...sample.structuredDescription,
+          clinicalDiagnosis: item.pathologyDiagnosis
+        }
+      };
+      onSelectSample(constructedSample);
+    }
   };
 
   return (
-    <div id="sample-detail-page" className="space-y-5 animate-in fade-in duration-200">
-      {/* Top Breadcrumb & Actions Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+    <div id="sample-detail-page" className="space-y-4 animate-in fade-in duration-200">
+      {/* 顶部操作条：仅展示“返回”按钮、项目名称和样本编号 */}
+      <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <button
             id="back-to-search-btn"
             onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold shadow-2xs transition-all hover:-translate-x-0.5 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold shadow-2xs transition-all hover:-translate-x-0.5 cursor-pointer"
             title="返回检索结果列表"
           >
-            <ArrowLeft className="w-4 h-4 text-blue-600" />
-            <span>返回数据检索</span>
+            <ArrowLeft className="w-4 h-4 text-[#18446b]" />
+            <span>返回</span>
           </button>
 
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+          <div className="h-5 w-px bg-slate-200" />
 
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="font-mono text-lg sm:text-xl font-extrabold text-blue-700">
-                {sample.sampleCode}
-              </span>
-              {sample.animalId && (
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold flex items-center gap-1">
-                  <GitFork className="w-3 h-3 text-blue-600" />
-                  动物编号: {sample.animalId}
-                </span>
-              )}
-              {sample.isLesion ? (
-                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                  病变组织 • {sample.lesionName}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  正常生理形态
-                </span>
-              )}
-              {sample.projectName && (
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-medium">
-                  {sample.projectName}
-                </span>
-              )}
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
-                {sample.organ}组织
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">
-                {sample.sliceType}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-              <span>品系：<strong className="text-slate-800 font-semibold">{sample.strain || sample.species}</strong> ({sample.species})</span>
-              <span>组别：<strong className="text-slate-800 font-semibold">{sample.experimentGroup}</strong></span>
-              <span>受试物/溶媒：<strong className="text-slate-800 font-semibold">{sample.testArticle}</strong></span>
-            </p>
-          </div>
-        </div>
+          {/* 项目名称 */}
+          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+            {sample.projectName || '长期毒性试验'}
+          </span>
 
-        <div className="flex items-center gap-2">
-          <div className="text-right hidden md:block">
-            <div className="text-xs text-slate-500">切片质量评级</div>
-            <div className="font-mono font-bold text-sm text-amber-600">{sample.qualityGrade}级标准 ({sample.resolution})</div>
-          </div>
+          {/* 样本编号 */}
+          <span className="font-mono text-base sm:text-lg font-bold text-[#18446b]">
+            {displayCode}
+          </span>
         </div>
       </div>
 
-      {/* Banner: Pathology Diagnosis High Priority Display */}
-      <div className="bg-gradient-to-r from-blue-50/80 via-white to-indigo-50/80 border border-blue-200/80 rounded-2xl p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-blue-600" />
-              <span>病理诊断结论 (Pathology Diagnosis)</span>
-            </div>
-            <div className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
-              {sample.pathologyDiagnosis || sample.structuredDescription.clinicalDiagnosis}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-slate-600 bg-white/90 px-3 py-2 rounded-xl border border-slate-200/80 shadow-2xs flex-shrink-0">
-            <div>
-              <span className="text-slate-400">审核病理医师:</span>{' '}
-              <span className="font-semibold text-slate-800">{sample.pathologistSign}</span>
-            </div>
-            <div className="h-3.5 w-px bg-slate-300" />
-            <div>
-              <span className="text-slate-400">采集日期:</span>{' '}
-              <span className="font-mono text-slate-700">{sample.samplingDate}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid: Left Microscope Stage + Right Structured Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Interactive Digital Slide Microscope Viewer (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
-          {/* Microscope Controls Bar */}
+      {/* 主工作区：左侧显微镜视场 + 右侧详细信息与标注标签 */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* 左侧：数字病理切片视场 (7 cols) - 已删除视场倍率/坐标/鼠标说明/画质调节栏 */}
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
+          {/* 控制条 */}
           <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
-            {/* Magnification Presets */}
+            {/* 物镜倍率切换 */}
             <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
               <span className="text-[11px] text-slate-500 px-1 font-medium">物镜倍率:</span>
               {[1, 2, 4, 10, 20].map((mag) => (
@@ -187,7 +386,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                   onClick={() => setZoom(mag)}
                   className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer ${
                     zoom === mag
-                      ? 'bg-blue-600 text-white shadow-2xs'
+                      ? 'bg-[#18446b] text-white shadow-2xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
@@ -196,7 +395,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
               ))}
             </div>
 
-            {/* Zoom / Pan Controls */}
+            {/* 缩放/平移/复位控制 */}
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setZoom(prev => Math.min(30, prev + 0.5))}
@@ -221,53 +420,51 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
               </button>
             </div>
 
-            {/* Annotations Toggle Only */}
+            {/* 标注图层切换 */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAnnotations(!showAnnotations)}
                 className={`flex items-center gap-1 px-3 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                   showAnnotations
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
+                    ? 'bg-sky-50 text-[#18446b] border-sky-300 shadow-2xs'
                     : 'bg-white text-slate-600 border-slate-300'
                 }`}
               >
-                <Tag className="w-3.5 h-3.5 text-blue-600" />
+                <Tag className="w-3.5 h-3.5 text-[#18446b]" />
                 <span>病理标注图层</span>
                 {showAnnotations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
 
-          {/* Interactive Slide Viewer Canvas Stage */}
+          {/* 纯净视场画布 (已彻底删除倍率、坐标、操作提示与画质栏) */}
           <div
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className="relative h-[520px] sm:h-[580px] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-slate-900 select-none"
+            className="relative h-[560px] sm:h-[620px] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-slate-900 select-none"
           >
-            {/* Slide Transform Plane */}
+            {/* 切片画布变换层 */}
             <div
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 transformOrigin: 'center center',
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                filter: `brightness(${brightness}%) contrast(${contrast}%)`
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
               }}
               className="relative w-[600px] h-[450px] max-w-full max-h-full rounded-md shadow-2xl overflow-hidden bg-slate-950 flex-shrink-0 ring-1 ring-slate-700"
             >
-              {/* Base Slide Specimen */}
               <img
                 src={sample.imageUrl}
-                alt={sample.sampleCode}
+                alt={displayCode}
                 className="w-full h-full object-cover pointer-events-none"
                 referrerPolicy="no-referrer"
               />
 
-              {/* Annotation Overlays */}
-              {showAnnotations && sample.annotations && (
+              {/* 3条新病理标注区域 */}
+              {showAnnotations && (
                 <div className="absolute inset-0 w-full h-full pointer-events-none">
-                  {sample.annotations.map((ann) => {
+                  {DETAIL_ANNOTATIONS.map((ann) => {
                     const isSelected = selectedAnnotationId === ann.id;
                     return (
                       <div
@@ -278,7 +475,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                           width: `${ann.width}%`,
                           height: `${ann.height}%`,
                           borderColor: ann.color,
-                          backgroundColor: `${ann.color}22`
+                          backgroundColor: `${ann.color}25`
                         }}
                         className={`absolute border-2 rounded pointer-events-auto cursor-pointer transition-all ${
                           isSelected ? 'ring-2 ring-white scale-[1.02] z-20' : 'hover:border-white'
@@ -292,7 +489,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                           style={{ backgroundColor: ann.color }}
                           className="absolute -top-5 left-0 px-1.5 py-0.2 text-[9px] font-bold text-white rounded shadow-sm whitespace-nowrap"
                         >
-                          {ann.label}
+                          {ann.type} · {ann.organ}
                         </div>
                       </div>
                     );
@@ -300,359 +497,229 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                 </div>
               )}
             </div>
-
-            {/* Viewport Scale Bar & Coordinates Indicator */}
-            <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 flex items-center gap-3 shadow-md">
-              <div className="flex items-center gap-1 font-mono font-semibold text-blue-700">
-                <span>当前视场:</span>
-                <span>{zoom.toFixed(1)}X 倍率</span>
-              </div>
-              <div className="h-3 w-px bg-slate-300" />
-              <div className="font-mono text-slate-500">
-                X: {Math.round(pan.x)}px | Y: {Math.round(pan.y)}px
-              </div>
-            </div>
-
-            {/* Stage Tips */}
-            <div className="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-xs text-white/80 px-2.5 py-1 rounded text-[10px] pointer-events-none">
-              按住鼠标左键可平移视场 • 滚轮/倍率按钮可无极放大
-            </div>
-          </div>
-
-          {/* Viewer Image Quality Adjustment Sub-bar */}
-          <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-4 text-slate-600">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px]">亮度:</span>
-                <input
-                  type="range"
-                  min="50"
-                  max="150"
-                  value={brightness}
-                  onChange={(e) => setBrightness(Number(e.target.value))}
-                  className="w-20 accent-blue-600"
-                />
-                <span className="font-mono text-[10px] w-7">{brightness}%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px]">对比度:</span>
-                <input
-                  type="range"
-                  min="50"
-                  max="150"
-                  value={contrast}
-                  onChange={(e) => setContrast(Number(e.target.value))}
-                  className="w-20 accent-blue-600"
-                />
-                <span className="font-mono text-[10px] w-7">{contrast}%</span>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-slate-500">
-              图像分辨率：<span className="font-mono font-semibold text-slate-700">{sample.resolution}</span>
-            </div>
           </div>
         </div>
 
-        {/* Right Column: Structured Pathology Details & Related Slices (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
-          {/* Tabs Navigation */}
-          <div className="flex items-center border-b border-slate-200 bg-slate-50/80 p-2 gap-1 text-xs overflow-x-auto">
+        {/* 右侧：详细信息、标注标签与关联切片 (5 cols) */}
+        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden">
+          {/* Tab 导航栏：详细信息、标注标签、关联切片 */}
+          <div className="flex items-center border-b border-slate-200 bg-slate-50/80 p-2 gap-1 text-xs">
             <button
-              onClick={() => setActiveTab('structured')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'structured'
-                  ? 'bg-white text-blue-700 font-semibold border border-slate-200 shadow-2xs'
+              onClick={() => setActiveTab('details')}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'details'
+                  ? 'bg-white text-[#18446b] font-bold border border-slate-200 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              结构化描述
+              详细信息
             </button>
             <button
               onClick={() => setActiveTab('annotations')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
                 activeTab === 'annotations'
-                  ? 'bg-white text-blue-700 font-semibold border border-slate-200 shadow-2xs'
+                  ? 'bg-white text-[#18446b] font-bold border border-slate-200 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <span>标注标签</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold">
-                {sample.annotations?.length || 0}
+              <span className="px-1.5 py-0.2 rounded-full bg-sky-100 text-[#18446b] text-[10px] font-bold">
+                {DETAIL_ANNOTATIONS.length}
               </span>
             </button>
             <button
-              onClick={() => setActiveTab('animal')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'animal'
-                  ? 'bg-white text-blue-700 font-semibold border border-slate-200 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              品系与实验动物
-            </button>
-            <button
               onClick={() => setActiveTab('related')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
                 activeTab === 'related'
-                  ? 'bg-white text-blue-700 font-semibold border border-slate-200 shadow-2xs'
+                  ? 'bg-white text-[#18446b] font-bold border border-slate-200 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <span>关联切片</span>
-              {relatedAnimalSlices.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-bold">
-                  {relatedAnimalSlices.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('technical')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'technical'
-                  ? 'bg-white text-blue-700 font-semibold border border-slate-200 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              切片参数
+              <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">
+                {activeRelatedSlices.length}
+              </span>
             </button>
           </div>
 
-          {/* Tab Body */}
-          <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4 text-xs max-h-[560px]">
-            {activeTab === 'structured' && (
-              <>
-                {/* Clinical Pathology Diagnosis Card */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    病理诊断结论 (Clinical Pathology Diagnosis)
-                  </div>
-                  <div className="text-sm font-bold text-slate-900 leading-snug">
-                    {sample.pathologyDiagnosis || sample.structuredDescription.clinicalDiagnosis}
-                  </div>
-                  <div className="p-3 bg-white rounded-lg border border-slate-200 text-slate-700 text-xs leading-relaxed">
-                    <span className="font-semibold text-blue-700">病理专家审查意见：</span>
-                    {sample.structuredDescription.pathologistRemarks}
-                  </div>
+          {/* Tab 内容区 */}
+          <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-3 text-xs max-h-[580px]">
+            {/* 1. 详细信息 Tab：展示指定10大字段 */}
+            {activeTab === 'details' && (
+              <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+                {/* 1) 动物种属 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物种属</span>
+                  <span className="font-bold text-slate-800 text-right">{sample.species}</span>
                 </div>
 
-                {/* Histopathological Scores */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    病理形态定量评分指标
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <div className="text-slate-500 text-[11px]">病理严重度评分</div>
-                      <div className="text-base font-bold text-amber-600 font-mono mt-0.5">
-                        {sample.structuredDescription.histopathologyScore} / 4 级
-                      </div>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <div className="text-slate-500 text-[11px]">纤维化分级</div>
-                      <div className="text-base font-bold text-indigo-600 font-mono mt-0.5">
-                        {sample.structuredDescription.fibrosisStage}
-                      </div>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <div className="text-slate-500 text-[11px]">炎性浸润评分</div>
-                      <div className="text-xs font-semibold text-slate-800 mt-1">
-                        {sample.structuredDescription.inflammationScore}
-                      </div>
-                    </div>
-                    <div className="p-2.5 bg-white rounded-lg border border-slate-200">
-                      <div className="text-slate-500 text-[11px]">坏死面积比例</div>
-                      <div className="text-base font-bold text-rose-600 font-mono mt-0.5">
-                        {sample.structuredDescription.necrosisPercentage}%
-                      </div>
-                    </div>
-                  </div>
+                {/* 2) 动物品系 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物品系</span>
+                  <span className="font-medium text-slate-800 text-right">{sample.strain || sample.species}</span>
                 </div>
 
-                {/* Cellular & Architectural Morphology */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                  <div>
-                    <div className="font-semibold text-blue-700 mb-1 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-blue-600" />
-                      细胞学显微形态改变：
-                    </div>
-                    <p className="text-slate-600 leading-relaxed pl-5 bg-white p-2.5 rounded border border-slate-200">
-                      {sample.structuredDescription.cellularMorphology}
-                    </p>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="font-semibold text-indigo-700 mb-1 flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                      组织架构与基底改变：
-                    </div>
-                    <p className="text-slate-600 leading-relaxed pl-5 bg-white p-2.5 rounded border border-slate-200">
-                      {sample.structuredDescription.architecturalChanges}
-                    </p>
-                  </div>
+                {/* 3) 系统/脏器类型 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">系统/脏器类型</span>
+                  <span className="font-bold text-slate-800 text-right">
+                    {sample.system || '消化系统'} / {sample.organ}
+                  </span>
                 </div>
 
-                {/* Sign-off Information */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-[11px] text-slate-500">
-                  <div className="flex items-center gap-1">
-                    <span>采样/记录人：</span>
-                    <span className="text-slate-800 font-medium">{sample.collectorName}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                    <span>审核病理师：</span>
-                    <span className="text-blue-700 font-semibold">{sample.pathologistSign}</span>
-                  </div>
+                {/* 4) 受试物 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">受试物</span>
+                  <span className="font-semibold text-slate-800 text-right">
+                    {sample.testArticleCategory || '药品'}
+                    {sample.testArticleSubCategory ? ` / ${sample.testArticleSubCategory}` : ''}
+                  </span>
                 </div>
-              </>
+
+                {/* 5) 组别 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">组别</span>
+                  <span className="font-medium text-slate-800 text-right">{sample.experimentGroup || '高剂量给药组'}</span>
+                </div>
+
+                {/* 6) 性别 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">性别</span>
+                  <span className="font-medium text-slate-800 text-right">{genderText}</span>
+                </div>
+
+                {/* 7) 周龄 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">周龄</span>
+                  <span className="font-mono font-bold text-slate-800 text-right">{sample.ageWeeks}周</span>
+                </div>
+
+                {/* 8) 病理诊断 */}
+                <div className="flex items-start justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0 pt-0.5">病理诊断</span>
+                  <span className="font-medium text-slate-800 text-right leading-relaxed max-w-[280px]">
+                    {sample.pathologyDiagnosis || sample.structuredDescription.clinicalDiagnosis || '未见明显组织学病变或细胞异型性'}
+                  </span>
+                </div>
+
+                {/* 9) 组织状态 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">组织状态</span>
+                  <span className="text-right">
+                    {sample.isLesion ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 font-semibold">
+                        <AlertCircle className="w-3 h-3 text-rose-600" />
+                        病变组织
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-semibold">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        正常组织
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* 10) 采集时间 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">采集时间</span>
+                  <span className="font-mono text-slate-700 text-right">{sample.samplingDate}</span>
+                </div>
+              </div>
             )}
 
+            {/* 2. 标注标签 Tab：展示指定的3条新数据，无置信度 */}
             {activeTab === 'annotations' && (
-              <div className="space-y-3">
-                <div className="text-slate-600 text-xs">
-                  共标注 <span className="text-blue-700 font-bold">{sample.annotations.length}</span> 个病理感兴趣区域 (ROI)。点击可在切片视场中定位：
+              <div className="space-y-2.5">
+                <div className="text-slate-600 text-xs font-medium">
+                  共标注 <span className="text-[#18446b] font-bold">{DETAIL_ANNOTATIONS.length}</span> 个区域，点击可定位：
                 </div>
-                {sample.annotations.map((ann) => (
-                  <div
-                    key={ann.id}
-                    onClick={() => setSelectedAnnotationId(ann.id)}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer ${
-                      selectedAnnotationId === ann.id
-                        ? 'bg-blue-50/80 border-blue-400 shadow-xs'
-                        : 'bg-slate-50 border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
+
+                {DETAIL_ANNOTATIONS.map((ann) => {
+                  const isSelected = selectedAnnotationId === ann.id;
+
+                  return (
+                    <div
+                      key={ann.id}
+                      onClick={() => handleFocusAnnotation(ann)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-sky-50/80 border-[#18446b] shadow-xs'
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
                         <div 
                           style={{ backgroundColor: ann.color }}
-                          className="w-3 h-3 rounded-full"
+                          className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/10"
                         />
-                        <span className="font-bold text-slate-900 text-xs">{ann.label}</span>
+                        <span className="font-bold text-slate-900 text-xs">
+                          {ann.type} · {ann.organ}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-blue-700">
-                        标记置信度: {(ann.probability * 100).toFixed(1)}%
-                      </span>
+                      <p className="text-xs text-slate-600 leading-relaxed pl-5">
+                        {ann.description}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {ann.description}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {activeTab === 'animal' && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <Dna className="w-3.5 h-3.5 text-teal-600" />
-                  <span>品系、组别与实验动物元数据</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">动物编号：</span>
-                    <div className="text-blue-700 font-mono font-bold">{sample.animalId || '未特别分配'}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">实验品系 (Strain)：</span>
-                    <div className="text-slate-900 font-bold">{sample.strain || sample.species}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">动物种属 (Species)：</span>
-                    <div className="text-slate-800 font-medium">{sample.species}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">性别：</span>
-                    <div className="text-slate-800 font-medium">{sample.gender}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">采样周龄：</span>
-                    <div className="text-blue-700 font-bold font-mono">{sample.ageWeeks} 周</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200">
-                    <span className="text-slate-500">动物体重：</span>
-                    <div className="text-slate-800">{sample.structuredDescription.bodyWeight || '未特别记录'}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200 col-span-2">
-                    <span className="text-slate-500">实验组别 (Experiment Group)：</span>
-                    <div className="text-slate-900 font-semibold text-xs mt-0.5">{sample.experimentGroup || sample.structuredDescription.experimentGroup}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded border border-slate-200 col-span-2">
-                    <span className="text-slate-500">受试物 / 溶媒 (Test Article / Vehicle)：</span>
-                    <div className="text-slate-900 font-medium text-xs mt-0.5">{sample.testArticle || '标准繁殖/维持饲养'}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Related Slices Tab (Linked by animalId or Strain) */}
+            {/* 3. 关联切片 Tab：支持 E02_Mou_C57_MA103_S02_Liv、E03_NHP_CR_LG021_S02_Lng、E02_Mou_C57_MA101_S01_Liv-Kid 以及其它样本的关联记录 */}
             {activeTab === 'related' && (
               <div className="space-y-3">
                 <div className="text-xs text-slate-600 flex items-center justify-between">
                   <span>
-                    同动物编号/实验组关联切片 (<strong className="text-blue-700">{relatedAnimalSlices.length}</strong> 张)：
+                    同动物关联切片（<strong className="text-[#18446b]">{activeRelatedSlices.length}</strong> 张）：
                   </span>
-                  {sample.animalId && (
-                    <span className="font-mono text-[11px] text-slate-500">
-                      动物ID: {sample.animalId}
-                    </span>
-                  )}
                 </div>
 
-                {relatedAnimalSlices.length === 0 ? (
+                {activeRelatedSlices.length === 0 ? (
                   <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-500 space-y-1">
                     <GitFork className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                     <p className="font-medium text-xs text-slate-700">暂无同一动物或直接对照的关联切片记录</p>
-                    <p className="text-[11px] text-slate-400">系统支持通过动物编号 (animalId) 快速串联该动物的多脏器或多时点连续切片</p>
+                    <p className="text-[11px] text-slate-400">系统支持通过动物编号串联该动物的多脏器或多时点连续切片</p>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {relatedAnimalSlices.map((rel) => (
+                    {activeRelatedSlices.map((rel) => (
                       <div
                         key={rel.id}
-                        onClick={() => onSelectSample && onSelectSample(rel)}
-                        className="p-3 bg-white border border-slate-200 hover:border-blue-400 rounded-xl flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                        onClick={() => handleNavigateToSlice(rel)}
+                        className="p-3 bg-white border border-slate-200 hover:border-[#18446b] rounded-xl flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
-                            <img
-                              src={rel.thumbnailUrl || rel.imageUrl}
-                              alt={rel.sampleCode}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              referrerPolicy="no-referrer"
-                            />
+                        <div className="flex flex-col gap-1 min-w-0">
+                          {/* 样本编号与组织状态 */}
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="font-mono font-bold text-[#18446b] text-xs">
+                              {rel.sampleCode.replace(/\.[^/.]+$/, '')}
+                            </span>
+                            {rel.isLesion ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 font-semibold">
+                                <AlertCircle className="w-3 h-3 text-rose-600" />
+                                病变组织
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 font-semibold">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                正常组织
+                              </span>
+                            )}
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-blue-700 group-hover:text-blue-800 text-xs">
-                                {rel.sampleCode}
-                              </span>
-                              <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
-                                {rel.organ}
-                              </span>
-                              {rel.isLesion ? (
-                                <span className="px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 text-[10px] font-semibold">
-                                  病变
-                                </span>
-                              ) : (
-                                <span className="px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
-                                  正常
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-slate-600 truncate mt-0.5">
-                              {rel.pathologyDiagnosis || rel.lesionName}
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              {rel.sliceType} • 采集于 {rel.samplingDate}
-                            </div>
+
+                          {/* 系统/脏器类型 */}
+                          <div className="text-[11px] text-slate-600 flex items-center gap-1">
+                            <span className="text-slate-400">系统/脏器类型:</span>
+                            <span className="font-semibold text-slate-800">
+                              {rel.system ? `${rel.system} / ${rel.organ}` : rel.organ}
+                            </span>
                           </div>
                         </div>
 
                         <button
                           type="button"
-                          className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 group-hover:text-blue-700 flex-shrink-0"
+                          className="flex items-center gap-1 text-[11px] font-semibold text-[#18446b] group-hover:text-[#0e3b66] shrink-0"
                         >
                           <span>查看切片</span>
                           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -663,50 +730,6 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                 )}
               </div>
             )}
-
-            {activeTab === 'technical' && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  <span>切片制备与数字化扫描技术参数</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between py-2 border-b border-slate-200">
-                    <span className="text-slate-500">切片与染色类型</span>
-                    <span className="text-slate-800 font-medium">{sample.sliceType}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-200">
-                    <span className="text-slate-500">染色试剂批号</span>
-                    <span className="text-slate-800 font-mono">{sample.stainBatch}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-200">
-                    <span className="text-slate-500">扫描光学分辨率</span>
-                    <span className="text-blue-700 font-mono font-semibold">{sample.resolution}</span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-slate-200">
-                    <span className="text-slate-500">切片质量评级</span>
-                    <span className="text-amber-600 font-bold">{sample.qualityGrade} 级标准</span>
-                  </div>
-                  {sample.customFields && Object.entries(sample.customFields).map(([k, v]) => (
-                    <div key={k} className="flex justify-between py-2 border-b border-slate-200">
-                      <span className="text-slate-500">{k}</span>
-                      <span className="text-slate-800">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Card Footer */}
-          <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
-            <span>数字化切片归档编码：{sample.id}</span>
-            <button
-              onClick={onBack}
-              className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer"
-            >
-              返回数据检索列表
-            </button>
           </div>
         </div>
       </div>

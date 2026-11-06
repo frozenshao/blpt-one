@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from './components/Header';
+import { Header, NavigationTab } from './components/Header';
+import { HomePage } from './components/HomePage';
 import { SearchFilterPanel } from './components/SearchFilterPanel';
+import { GdcCohortBar } from './components/GdcCohortBar';
 import { SampleResultsView } from './components/SampleResultsView';
 import { SampleDetailPage } from './components/SampleDetailPage';
 import { AIClassificationView } from './components/AIClassificationView';
 import { StatsDashboard } from './components/StatsDashboard';
-import { PathologySample, PathologyFilterParams } from './types/pathology';
+import { PathologySample, PathologyFilterParams, AnimalSpecies } from './types/pathology';
 import { INITIAL_PATHOLOGY_SAMPLES } from './data/mockPathologyData';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'ai-classify' | 'analytics'>('search');
+  const [activeTab, setActiveTab] = useState<NavigationTab>('home');
   const [filters, setFilters] = useState<PathologyFilterParams>({
     page: 1,
     pageSize: 12,
@@ -42,6 +44,14 @@ export default function App() {
   // Sample transferred directly to AI model
   const [sampleForAI, setSampleForAI] = useState<PathologySample | null>(null);
 
+  // Custom cohort samples passed from search selection to analytics
+  const [customCohortSamples, setCustomCohortSamples] = useState<PathologySample[] | null>(null);
+
+  const handleAnalyzeCohort = (selectedSamples: PathologySample[]) => {
+    setCustomCohortSamples(selectedSamples);
+    setActiveTab('analytics');
+  };
+
   // Fetch samples from backend search API
   const fetchSearchResults = useCallback(async (currentFilters: PathologyFilterParams) => {
     setIsLoading(true);
@@ -66,12 +76,84 @@ export default function App() {
       console.warn('Search API fallback to local in-memory dataset:', err);
       // Fallback to local filter in memory
       let filtered = [...INITIAL_PATHOLOGY_SAMPLES];
-      if (currentFilters.projectName && currentFilters.projectName !== '全部') {
+      if (currentFilters.projectNames && currentFilters.projectNames.length > 0) {
+        filtered = filtered.filter(s => s.projectName && currentFilters.projectNames!.includes(s.projectName));
+      } else if (currentFilters.projectName && currentFilters.projectName !== '全部') {
         filtered = filtered.filter(s => s.projectName === currentFilters.projectName);
+      }
+      if (currentFilters.systems && currentFilters.systems.length > 0) {
+        filtered = filtered.filter(s => s.system && currentFilters.systems!.includes(s.system));
+      }
+      if (currentFilters.organs && currentFilters.organs.length > 0) {
+        filtered = filtered.filter(s => currentFilters.organs!.includes(s.organ));
+      }
+      if (currentFilters.testArticleCategory && currentFilters.testArticleCategory !== '全部') {
+        filtered = filtered.filter(s => s.testArticleCategory === currentFilters.testArticleCategory);
+      }
+      if (currentFilters.testArticleSubCategory && currentFilters.testArticleSubCategory !== '全部') {
+        filtered = filtered.filter(s => s.testArticleSubCategory === currentFilters.testArticleSubCategory);
+      }
+      if (currentFilters.isLesionFilter && currentFilters.isLesionFilter !== 'all') {
+        if (currentFilters.isLesionFilter === 'normal') {
+          filtered = filtered.filter(s => !s.isLesion);
+        } else if (currentFilters.isLesionFilter === 'lesion') {
+          filtered = filtered.filter(s => s.isLesion);
+        }
+      }
+      if (currentFilters.species && currentFilters.species.length > 0) {
+        filtered = filtered.filter(s => currentFilters.species!.includes(s.species));
+      }
+      if (currentFilters.animalTypes && currentFilters.animalTypes.length > 0) {
+        filtered = filtered.filter(s => {
+          return currentFilters.animalTypes!.some(at => {
+            if (at === '小鼠') return s.species.includes('小鼠');
+            if (at === '大鼠') return s.species.includes('大鼠');
+            return s.species.includes(at) || at.includes(s.species);
+          });
+        });
+      }
+      if (currentFilters.strains && currentFilters.strains.length > 0) {
+        filtered = filtered.filter(s => {
+          return currentFilters.strains!.some(st => 
+            s.strain.toLowerCase().includes(st.toLowerCase()) || 
+            st.toLowerCase().includes(s.strain.toLowerCase())
+          );
+        });
+      }
+      if (currentFilters.genderOptions && currentFilters.genderOptions.length > 0) {
+        filtered = filtered.filter(s => currentFilters.genderOptions!.some(g => s.gender.includes(g)));
+      }
+      if (currentFilters.ageRanges && currentFilters.ageRanges.length > 0) {
+        filtered = filtered.filter(s => {
+          return currentFilters.ageRanges!.some(range => {
+            if (range === '8周及以下') return s.ageWeeks <= 8;
+            if (range === '9 - 16周') return s.ageWeeks >= 9 && s.ageWeeks <= 16;
+            if (range === '17 - 24周') return s.ageWeeks >= 17 && s.ageWeeks <= 24;
+            if (range === '25 - 52周') return s.ageWeeks >= 25 && s.ageWeeks <= 52;
+            if (range === '52周以上') return s.ageWeeks > 52;
+            return true;
+          });
+        });
+      }
+      if (typeof currentFilters.ageMin === 'number' && !isNaN(currentFilters.ageMin)) {
+        filtered = filtered.filter(s => s.ageWeeks >= currentFilters.ageMin!);
+      }
+      if (typeof currentFilters.ageMax === 'number' && !isNaN(currentFilters.ageMax)) {
+        filtered = filtered.filter(s => s.ageWeeks <= currentFilters.ageMax!);
+      }
+      if (currentFilters.sliceTypes && currentFilters.sliceTypes.length > 0) {
+        filtered = filtered.filter(s => currentFilters.sliceTypes!.includes(s.sliceType));
       }
       if (currentFilters.keyword) {
         const q = currentFilters.keyword.toLowerCase();
-        filtered = filtered.filter(s => s.sampleCode.toLowerCase().includes(q) || s.organ.includes(q) || s.lesionName.includes(q));
+        filtered = filtered.filter(s => 
+          s.sampleCode.toLowerCase().includes(q) || 
+          s.organ.toLowerCase().includes(q) || 
+          (s.system && s.system.toLowerCase().includes(q)) ||
+          s.testArticle.toLowerCase().includes(q) ||
+          s.pathologyDiagnosis.toLowerCase().includes(q) ||
+          s.species.toLowerCase().includes(q)
+        );
       }
       setSamples(filtered);
       setTotalCount(filtered.length);
@@ -123,6 +205,41 @@ export default function App() {
     }
   };
 
+  // Navigate from Home Page to other views with optional pre-filters
+  const handleNavigateFromHome = (
+    tab: NavigationTab,
+    presetFilters?: {
+      projectName?: string;
+      species?: AnimalSpecies;
+      organ?: string;
+      keyword?: string;
+    }
+  ) => {
+    if (presetFilters) {
+      setFilters(prev => ({
+        ...prev,
+        page: 1,
+        ...(presetFilters.projectName ? { projectName: presetFilters.projectName } : {}),
+        ...(presetFilters.species ? { species: [presetFilters.species] } : {}),
+        ...(presetFilters.organ ? { organs: [presetFilters.organ as any] } : {}),
+        ...(presetFilters.keyword ? { keyword: presetFilters.keyword } : {}),
+      }));
+    }
+    setActiveTab(tab);
+    setSelectedSample(null);
+  };
+
+  // Header quick global search
+  const handleGlobalSearch = (keyword: string) => {
+    setFilters(prev => ({
+      ...prev,
+      keyword: keyword || undefined,
+      page: 1
+    }));
+    setActiveTab('search');
+    setSelectedSample(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
       {/* Global Application Header */}
@@ -137,11 +254,17 @@ export default function App() {
             setSampleForAI(null);
           }
         }}
+        onSearch={handleGlobalSearch}
         totalSamples={facets.totalSamples || totalCount}
       />
 
-      {/* Main App Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Main App Container: Full Width Responsive */}
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+        {/* Tab 0: Home Page Overview */}
+        {activeTab === 'home' && (
+          <HomePage onNavigate={handleNavigateFromHome} />
+        )}
+
         {/* Tab 1: Data Search & Retrieval or Sample Detail Page */}
         {activeTab === 'search' && (
           selectedSample ? (
@@ -153,27 +276,43 @@ export default function App() {
               onSelectSample={(s) => setSelectedSample(s)}
             />
           ) : (
-            <div className="space-y-6 animate-in fade-in duration-150">
-              {/* 1. Multi-dimensional Filter Panel */}
-              <SearchFilterPanel
+            <div className="space-y-3 animate-in fade-in duration-150 w-full">
+              {/* 1. GDC Navy Cohort Bar and Active Filters Strip (Full Width) */}
+              <GdcCohortBar
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 onReset={handleResetFilters}
-                facets={facets}
+                totalCount={totalCount}
               />
 
-              {/* 2. Search Results Display (Table & Grid) */}
-              <SampleResultsView
-                samples={samples}
-                total={totalCount}
-                page={filters.page || 1}
-                pageSize={filters.pageSize || 12}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                onSelectSample={(s) => setSelectedSample(s)}
-                onSendToAI={handleSendToAI}
-                isLoading={isLoading}
-              />
+              {/* 2. GDC Portal Split Layout: Left Accordion Facets + Right Table */}
+              <div className="flex flex-col lg:flex-row gap-4 items-start w-full">
+                {/* Left Sidebar: GDC Accordion Facets */}
+                <div className="w-full lg:w-[310px] lg:shrink-0">
+                  <SearchFilterPanel
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onReset={handleResetFilters}
+                    facets={facets}
+                  />
+                </div>
+
+                {/* Right Main Table & Actions */}
+                <div className="w-full lg:flex-1 min-w-0">
+                  <SampleResultsView
+                    samples={samples}
+                    total={totalCount}
+                    page={filters.page || 1}
+                    pageSize={filters.pageSize || 12}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    onSelectSample={(s) => setSelectedSample(s)}
+                    onSendToAI={handleSendToAI}
+                    onAnalyzeCohort={handleAnalyzeCohort}
+                    isLoading={isLoading}
+                  />
+                </div>
+              </div>
             </div>
           )
         )}
@@ -191,23 +330,14 @@ export default function App() {
         {/* Tab 3: Statistics & Distribution Analytics */}
         {activeTab === 'analytics' && (
           <div className="animate-in fade-in duration-150">
-            <StatsDashboard samples={INITIAL_PATHOLOGY_SAMPLES} />
+            <StatsDashboard 
+              samples={samples} 
+              customCohortSamples={customCohortSamples}
+              onClearCustomCohort={() => setCustomCohortSamples(null)}
+            />
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="font-medium text-slate-600">
-            病理数据多维智能检索与分析平台 • Powered by PathoVision AI
-          </div>
-          <div className="flex items-center gap-4 text-slate-500 text-[11px]">
-            <span>数字切片格式：WSI / SVS / TIFF / JPG</span>
-            <span>AI模型：正常/病变二分类 + Grad-CAM热力图</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

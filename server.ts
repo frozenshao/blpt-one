@@ -63,14 +63,31 @@ app.post('/api/pathology/search', (req, res) => {
       );
     }
 
-    // Organ filter (multi-select)
+    // System filter (multi-select)
+    if (params.systems && params.systems.length > 0) {
+      filtered = filtered.filter(item => item.system && params.systems!.includes(item.system));
+    }
+
+    // Organ / Gland filter (multi-select)
     if (params.organs && params.organs.length > 0) {
       filtered = filtered.filter(item => params.organs!.includes(item.organ));
     }
 
-    // Project filter ('全部' | '小鼠长毒研究' | '重复给药毒性研究')
-    if (params.projectName && params.projectName !== '全部') {
+    // Project filter (7 project categories: '长期毒性试验', '急性毒性试验', '致癌性试验', '生殖毒性试验', '局部刺激试验', '神经毒性试验', '其他')
+    if (params.projectNames && params.projectNames.length > 0) {
+      filtered = filtered.filter(item => item.projectName && params.projectNames!.includes(item.projectName));
+    } else if (params.projectName && params.projectName !== '全部') {
       filtered = filtered.filter(item => item.projectName === params.projectName);
+    }
+
+    // Test Article Category filter ('药品' | '医疗器械' | '化妆品')
+    if (params.testArticleCategory && params.testArticleCategory !== '全部') {
+      filtered = filtered.filter(item => item.testArticleCategory === params.testArticleCategory);
+    }
+
+    // Test Article SubCategory filter (e.g. '抗体', '小分子化药', etc.)
+    if (params.testArticleSubCategory && params.testArticleSubCategory !== '全部') {
+      filtered = filtered.filter(item => item.testArticleSubCategory === params.testArticleSubCategory);
     }
 
     // Slice Type filter (multi-select)
@@ -87,24 +104,56 @@ app.post('/api/pathology/search', (req, res) => {
       }
     }
 
-    // Lesion Name / Annotation Tag filter (multi-select)
-    if (params.lesionNames && params.lesionNames.length > 0) {
-      filtered = filtered.filter(item => params.lesionNames!.includes(item.lesionName));
-    }
-
-    // Lesion Distribution filter (multi-select)
-    if (params.lesionDistributions && params.lesionDistributions.length > 0) {
-      filtered = filtered.filter(item => params.lesionDistributions!.includes(item.lesionDistribution));
-    }
-
     // Animal Species filter (multi-select)
     if (params.species && params.species.length > 0) {
       filtered = filtered.filter(item => params.species!.includes(item.species));
     }
 
+    // 动物种属筛选 (小鼠, 大鼠, 食蟹猴, 比格犬, 人源异种移植模型(PDX), 斑马鱼)
+    if (params.animalTypes && params.animalTypes.length > 0) {
+      filtered = filtered.filter(item => {
+        return params.animalTypes!.some(at => {
+          if (at === '小鼠') return item.species.includes('小鼠');
+          if (at === '大鼠') return item.species.includes('大鼠');
+          return item.species.includes(at) || at.includes(item.species);
+        });
+      });
+    }
+
+    // 动物品系筛选 (C57BL/6J, BALB/cAnN, Sprague-Dawley, Wistar等)
+    if (params.strains && params.strains.length > 0) {
+      filtered = filtered.filter(item => {
+        return params.strains!.some(st => 
+          item.strain.toLowerCase().includes(st.toLowerCase()) || 
+          st.toLowerCase().includes(item.strain.toLowerCase())
+        );
+      });
+    }
+
     // Gender filter (multi-select)
     if (params.genders && params.genders.length > 0) {
       filtered = filtered.filter(item => params.genders!.includes(item.gender));
+    }
+
+    // 性别快捷选项 (雄性, 雌性)
+    if (params.genderOptions && params.genderOptions.length > 0) {
+      filtered = filtered.filter(item => {
+        return params.genderOptions!.some(g => item.gender.includes(g));
+      });
+    }
+
+    // 周龄区间筛选 (8周及以下, 9-16周, 17-24周, 25-52周, 52周以上)
+    if (params.ageRanges && params.ageRanges.length > 0) {
+      filtered = filtered.filter(item => {
+        return params.ageRanges!.some(range => {
+          if (range === '8周及以下') return item.ageWeeks <= 8;
+          if (range === '9 - 16周') return item.ageWeeks >= 9 && item.ageWeeks <= 16;
+          if (range === '17 - 24周') return item.ageWeeks >= 17 && item.ageWeeks <= 24;
+          if (range === '25 - 52周') return item.ageWeeks >= 25 && item.ageWeeks <= 52;
+          if (range === '52周以上') return item.ageWeeks > 52;
+          return true;
+        });
+      });
     }
 
     // Age / Week age range filter

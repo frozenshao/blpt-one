@@ -29,12 +29,14 @@ function search(params: PathologyFilterParams) {
       item.structuredDescription.cellularMorphology,
     ].some((value) => value?.toLowerCase().includes(keyword)));
   }
+  if (params.systems?.length) filtered = filtered.filter((item) => item.system && params.systems!.includes(item.system));
   if (params.organs?.length) filtered = filtered.filter((item) => params.organs!.includes(item.organ));
+  if (params.projectName && params.projectName !== '全部') filtered = filtered.filter((item) => item.projectName === params.projectName);
+  if (params.testArticleCategory && params.testArticleCategory !== '全部') filtered = filtered.filter((item) => item.testArticleCategory === params.testArticleCategory);
+  if (params.testArticleSubCategory && params.testArticleSubCategory !== '全部') filtered = filtered.filter((item) => item.testArticleSubCategory === params.testArticleSubCategory);
   if (params.sliceTypes?.length) filtered = filtered.filter((item) => params.sliceTypes!.includes(item.sliceType));
   if (params.isLesionFilter === 'normal') filtered = filtered.filter((item) => !item.isLesion);
   if (params.isLesionFilter === 'lesion') filtered = filtered.filter((item) => item.isLesion);
-  if (params.lesionNames?.length) filtered = filtered.filter((item) => params.lesionNames!.includes(item.lesionName));
-  if (params.lesionDistributions?.length) filtered = filtered.filter((item) => params.lesionDistributions!.includes(item.lesionDistribution));
   if (params.species?.length) filtered = filtered.filter((item) => params.species!.includes(item.species));
   if (params.genders?.length) filtered = filtered.filter((item) => params.genders!.includes(item.gender));
   if (typeof params.ageMin === 'number') filtered = filtered.filter((item) => item.ageWeeks >= params.ageMin!);
