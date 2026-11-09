@@ -176,55 +176,32 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
 
   return (
     <div className="bg-white border border-[#a4c3de]/80 p-5 rounded-2xl shadow-xs space-y-5">
-      {/* 模块顶部标题栏 */}
-      <div className="flex items-center gap-3 pb-4 border-b border-[#bcd7ee]/60">
-        <div className="w-10 h-10 rounded-xl bg-[#0e3b66]/10 border border-[#a4c3de] flex items-center justify-center text-[#0e3b66] shrink-0">
-          <HeartPulse className="w-5 h-5 text-[#0e3b66]" />
+      {/* 模块顶部标题栏与受试物类型筛选 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#bcd7ee]/60">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-lg bg-[#0e3b66]/10 text-[#0e3b66] border border-[#a4c3de]">
+            <HeartPulse className="w-5 h-5 text-[#0e3b66]" />
+          </span>
+          <h3 className="text-base font-bold text-[#102a48] tracking-tight">
+            不同受试物的靶器官分析
+          </h3>
         </div>
-        <h3 className="text-base font-bold text-[#102a48] tracking-tight">
-          不同受试物的靶器官分析
-        </h3>
-      </div>
 
-      {/* 受试物类别切换 Pill 按钮 - 样式及选中时的样式及色系与上方选中项目保持一致 */}
-      <div className="space-y-2">
-        <div className="text-xs font-bold text-[#102a48]">
-          受试物类型：
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          {testArticleDatasets.map((item) => {
-            const isSelected = selectedId === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setSelectedId(item.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-[#0e3b66] text-white border-[#0e3b66] shadow-sm ring-2 ring-[#0e3b66]/30'
-                    : 'bg-white/90 hover:bg-white text-slate-800 border-[#bcd7ee]/80 hover:border-[#0e3b66] shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <div className={`w-3 h-3 rounded-full border flex items-center justify-center shrink-0 ${
-                    isSelected ? 'border-white bg-white' : 'border-slate-300 bg-white'
-                  }`}>
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0e3b66]" />}
-                  </div>
-                  <span className={`text-[10px] font-mono ${isSelected ? 'text-sky-200' : 'text-slate-400'}`}>
-                    {item.sampleCount}例
-                  </span>
-                </div>
-
-                <div className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-[#102a48]'}`} title={item.subCategory}>
-                  {item.subCategory}
-                </div>
-                <div className={`text-[11px] font-semibold mt-1 ${isSelected ? 'text-sky-100' : 'text-[#0e3b66]'}`}>
-                  病变率 {item.overallLesionRate}%
-                </div>
-              </button>
-            );
-          })}
+        {/* 受试物类型筛选：展示在右上方（即不同动物种属病变对比统计中性别筛选的位置与样式） */}
+        <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
+          <span className="font-medium text-[#102a48]/70">受试物类型:</span>
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            aria-label="筛选受试物类型"
+            className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
+          >
+            {testArticleDatasets.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.subCategory}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -234,7 +211,7 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#0e3b66]" />
             <span className="text-xs font-bold text-[#102a48]">
-              病变率
+              病变率（%）
             </span>
           </div>
         </div>
@@ -247,7 +224,7 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="organ" stroke="#64748b" fontSize={11} />
-              <YAxis stroke="#64748b" fontSize={11} allowDecimals={false} />
+              <YAxis stroke="#64748b" fontSize={11} unit="%" />
               <Tooltip 
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
@@ -256,16 +233,12 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
                       <div className="p-2.5 border border-[#bcd7ee] shadow-md rounded-lg bg-white text-xs space-y-1">
                         <div className="font-bold text-[#102a48] border-b border-slate-100 pb-1">{label}</div>
                         <div className="text-slate-600 flex items-center justify-between gap-4">
-                          <span>总数:</span>
-                          <span className="font-mono font-semibold text-[#18446b]">{data.total}</span>
-                        </div>
-                        <div className="text-slate-600 flex items-center justify-between gap-4">
-                          <span>病变数:</span>
-                          <span className="font-mono font-semibold text-rose-600">{data.lesions}</span>
-                        </div>
-                        <div className="text-slate-600 flex items-center justify-between gap-4">
                           <span>病变率:</span>
-                          <span className="font-mono font-semibold text-[#db2777]">{data.rate}%</span>
+                          <span className="font-mono font-semibold text-[#0e3b66]">{data.rate}%</span>
+                        </div>
+                        <div className="text-slate-500 text-[11px] flex items-center justify-between gap-4">
+                          <span>病变数/总数:</span>
+                          <span className="font-mono">{data.lesions} / {data.total}</span>
                         </div>
                       </div>
                     );
@@ -274,8 +247,7 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
                 }} 
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-              <Bar dataKey="total" name="总数" fill="#2563eb" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="lesions" name="病变数" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="rate" name="病变率 (%)" fill="#2563eb" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -289,7 +261,7 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
               <tr>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">靶器官名称</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">所属系统</th>
-                <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变/总数</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变数/总数</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变率 (%)</th>
               </tr>
             </thead>

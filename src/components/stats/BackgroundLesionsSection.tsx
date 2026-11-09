@@ -11,7 +11,9 @@ import {
 import { 
   Dna, 
   Filter, 
-  Activity
+  Activity,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { BACKGROUND_LESIONS_DATA } from '../../data/toxicologyStatsData';
 
@@ -59,8 +61,51 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
   const speciesList = ['全部', 'SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠'];
   const genderList = ['全部', '雄性', '雌性'];
 
+  // Unique background lesions for multi-select
+  const allBackgroundLesionNames = useMemo(() => {
+    return Array.from(
+      new Set(
+        BACKGROUND_LESIONS_DATA.map(item =>
+          item.lesionName.replace(/\s*\([a-zA-Z\s'\-_/]+\)/g, '').trim()
+        )
+      )
+    );
+  }, []);
+
+  const [selectedLesions, setSelectedLesions] = useState<string[]>([]);
+  const [isLesionDropdownOpen, setIsLesionDropdownOpen] = useState<boolean>(false);
+
+  // Sync selected species and gender when project changes
+  useEffect(() => {
+    setSelectedSpecies('全部');
+    setSelectedGender('全部');
+    setSelectedLesions([]);
+  }, [projectId]);
+
+  const handleToggleLesion = (lesion: string) => {
+    if (lesion === '全部') {
+      if (selectedLesions.length === allBackgroundLesionNames.length) {
+        setSelectedLesions([]);
+      } else {
+        setSelectedLesions([...allBackgroundLesionNames]);
+      }
+      return;
+    }
+    if (selectedLesions.includes(lesion)) {
+      setSelectedLesions(selectedLesions.filter(l => l !== lesion));
+    } else {
+      setSelectedLesions([...selectedLesions, lesion]);
+    }
+  };
+
+  const isAllLesionsSelected =
+    selectedLesions.length === 0 ||
+    selectedLesions.length === allBackgroundLesionNames.length;
+
   const filteredData = currentDataset.filter(item => {
     if (selectedSpecies !== '全部' && item.species !== selectedSpecies) return false;
+    const cleanName = item.lesionName.replace(/\s*\([a-zA-Z\s'\-_/]+\)/g, '').trim();
+    if (!isAllLesionsSelected && !selectedLesions.includes(cleanName)) return false;
     return true;
   });
 
@@ -71,8 +116,8 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
       name: `${item.species.replace(' ', '')}-${item.organ}`,
       shortLabel: cleanLesionName.split(' ')[0],
       fullName: `${item.species} · ${cleanLesionName}`,
-      '雄性病变率 (%)': item.maleRate,
-      '雌性病变率 (%)': item.femaleRate,
+      '雄性': item.maleRate,
+      '雌性': item.femaleRate,
       maleRatio: item.maleCountStr,
       femaleRatio: item.femaleCountStr,
       hcdRange: item.hcdRange
@@ -101,7 +146,7 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
           </h3>
         </div>
 
-        {/* Filter Controls: 动物种属、性别 */}
+        {/* Filter Controls: 动物种属、性别、背景性病变 */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
             <Filter className="w-3.5 h-3.5 text-[#18446b]/60" />
@@ -131,6 +176,93 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
               ))}
             </select>
           </div>
+
+          {/* 在性别后增加”背景性病变“筛选条件，默认选中全部，支持多选 */}
+          <div className="relative">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsLesionDropdownOpen(!isLesionDropdownOpen)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsLesionDropdownOpen(!isLesionDropdownOpen); }}
+              className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48] cursor-pointer hover:border-[#a4c3de] transition-colors"
+            >
+              <span className="font-medium text-[#102a48]/70">背景性病变:</span>
+              <span className="font-semibold text-[#18446b] bg-white px-2 py-0.5 rounded border border-[#bcd7ee]">
+                {isAllLesionsSelected ? '全部' : selectedLesions.length === 1 ? selectedLesions[0] : `已选 ${selectedLesions.length} 项`}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#18446b]/60" />
+            </div>
+
+            {isLesionDropdownOpen && (
+              <div className="absolute z-20 top-full mt-1.5 right-0 w-64 bg-white border border-[#bcd7ee] rounded-xl shadow-lg p-2.5 space-y-2">
+                <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between pb-1 border-b border-slate-100">
+                  <span>多选背景性病变</span>
+                  <span className="text-[#18446b] font-bold">
+                    {isAllLesionsSelected ? '全部' : `${selectedLesions.length}/${allBackgroundLesionNames.length}`}
+                  </span>
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1">
+                  {/* 全部选项 */}
+                  <div 
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleToggleLesion('全部')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleLesion('全部'); }}
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                      isAllLesionsSelected ? 'bg-[#f0f6fc] text-[#18446b] font-semibold' : 'text-slate-700 hover:bg-[#f8fafc]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isAllLesionsSelected}
+                        readOnly
+                        className="rounded text-[#0e3b66] focus:ring-[#0e3b66] pointer-events-none"
+                      />
+                      <span>全部</span>
+                    </div>
+                    {isAllLesionsSelected && <Check className="w-3.5 h-3.5 text-[#0e3b66]" />}
+                  </div>
+
+                  {allBackgroundLesionNames.map(lesion => {
+                    const isChecked = isAllLesionsSelected || selectedLesions.includes(lesion);
+                    return (
+                      <div 
+                        key={lesion}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleToggleLesion(lesion)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleLesion(lesion); }}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                          isChecked ? 'bg-[#f0f6fc] text-[#18446b] font-semibold' : 'text-slate-700 hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            readOnly
+                            className="rounded text-[#0e3b66] focus:ring-[#0e3b66] pointer-events-none"
+                          />
+                          <span className="truncate">{lesion}</span>
+                        </div>
+                        {isChecked && <Check className="w-3.5 h-3.5 text-[#0e3b66]" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-1.5 border-t border-slate-100 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsLesionDropdownOpen(false)}
+                    className="px-3 py-1 bg-[#0e3b66] text-white rounded text-xs font-medium hover:bg-[#12385c] cursor-pointer"
+                  >
+                    完成
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -139,7 +271,7 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-bold text-[#102a48] flex items-center gap-1.5">
             <Activity className="w-4 h-4 text-[#0e3b66]" />
-            <span>常见背景病变雌雄病变率对比图 (%)</span>
+            <span>病变率 (%)</span>
           </h4>
         </div>
 
@@ -158,7 +290,7 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
               <Tooltip 
                 contentStyle={tooltipStyle}
                 formatter={(value: any, name: any, item: any) => {
-                  const ratio = name === '雄性病变率 (%)' ? item.payload.maleRatio : item.payload.femaleRatio;
+                  const ratio = name === '雄性' ? item.payload.maleRatio : item.payload.femaleRatio;
                   return [`${value}% (${ratio})`, name];
                 }}
                 labelFormatter={(_label, payload) => {
@@ -170,10 +302,10 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
               />
               <Legend wrapperStyle={{ fontSize: '11px', paddingTop: 10 }} />
               {(selectedGender === '全部' || selectedGender === '雄性') && (
-                <Bar dataKey="雄性病变率 (%)" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="雄性" fill="#2563eb" radius={[4, 4, 0, 0]} />
               )}
               {(selectedGender === '全部' || selectedGender === '雌性') && (
-                <Bar dataKey="雌性病变率 (%)" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="雌性" fill="#f43f5e" radius={[4, 4, 0, 0]} />
               )}
             </BarChart>
           </ResponsiveContainer>

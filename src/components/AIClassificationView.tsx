@@ -11,7 +11,8 @@ import {
   ZoomOut,
   Layers,
   Sliders,
-  CheckCircle2
+  CheckCircle2,
+  RotateCcw
 } from 'lucide-react';
 import { ClassificationResult, PathologySample } from '../types/pathology';
 
@@ -32,13 +33,40 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
   const [analysisStage, setAnalysisStage] = useState<string>('');
   const [result, setResult] = useState<ClassificationResult | null>(null);
 
-  // Result Visual Controls matching Picture 3 & Picture 4
+  // Result Visual Controls matching Picture 3 & Picture 4 and SampleDetailPage
   const [heatmapOpacity, setHeatmapOpacity] = useState<number>(0.65);
   const [isOriginalCompare, setIsOriginalCompare] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [wsiZoom, setWsiZoom] = useState<'4x' | '10x' | '20x' | '40x'>('40x');
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Slide display constants
+  const [failureState, setFailureState] = useState<{ isFailed: boolean; status: string; reason: string; fileName: string } | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleResetView = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // slide display constants
   const currentFileName = selectedFile?.name || initialSampleForAI?.sampleCode || 'liver_HE_0402.png';
   const isWsiFile = currentFileName.toLowerCase().endsWith('.ndpi') || currentFileName.toLowerCase().endsWith('.svs');
   const wsiFormatType = currentFileName.toLowerCase().endsWith('.ndpi') ? 'ndpi' : currentFileName.toLowerCase().endsWith('.svs') ? 'svs' : 'standard';
@@ -74,62 +102,66 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
     setIsAnalyzing(true);
     setFormatError(null);
     setResult(null);
+    setFailureState(null);
+
+    // 上传文件名称为”失败“时，显示识别失败状态，失败原因为“模型推理异常”
+    if (fileName.includes('失败')) {
+      setTimeout(() => {
+        setIsAnalyzing(false);
+        setFailureState({
+          isFailed: true,
+          status: '识别失败',
+          reason: '模型推理异常',
+          fileName
+        });
+      }, 900);
+      return;
+    }
 
     const isWsi = fileName.toLowerCase().endsWith('.ndpi') || fileName.toLowerCase().endsWith('.svs');
 
-    setAnalysisStage(
-      isWsi 
-        ? `解析 ${fileName.toUpperCase()} 全切片金字塔大图 (WSI Pyramid Level 0~7 Tile Loader)...` 
-        : '切片色彩校准与图像编码中 (HE/IHC Standardizer)...'
-    );
-
+    // 仅显示“模型处理中”，不依次显示多阶段文案
     setTimeout(() => {
-      setAnalysisStage('连接病理组织二分类AI模型推理引擎 (patho-v2.1)...');
-      setTimeout(() => {
-        setAnalysisStage('解析细胞异型性与Grad-CAM空间病灶激活热力图...');
-        setTimeout(() => {
-          setIsAnalyzing(false);
-          setAnalysisStage('');
-          setResult({
-            classification: '病变组织',
-            isLesion: true,
-            confidence: 92.5,
-            confidenceScore: 0.925,
-            normalProbability: 0.075,
-            lesionProbability: 0.925,
-            lesionTypePredicted: '腺管异型性病变',
-            lesionDistributionPredicted: '局灶性结节分布',
-            affectedAreaPercentage: 42,
-            cellularAnalysis: {
-              nuclearAtypia: '细胞核轻-中度增大，染色质深染粗颗粒状，核仁隐约可见，部分极性丧失。',
-              tissueArchitecture: '腺泡/腺管结构排列紊乱，局部管腔扩张呈不规则囊状，部分区域融合。',
-              inflammatoryInfiltration: '间质可见散在慢性淋巴细胞浸润伴充血水肿。',
-              stromalReaction: '病灶周围纤维结缔组织轻度反应性增生。',
-              mitoticCount: '散在少见核分裂象 (1-2/10 HPF)'
-            },
-            hotspots: [
-              { x: 44, y: 50, radius: 46, intensity: 1.0, label: '高风险异型病变核心区' }
-            ],
-            processingTimeMs: isWsi ? 1860 : 1240,
-            modelVersion: 'patho-v2.1',
-            isFallback: false,
-            timestamp: '2026-08-27T10:32:18.000Z',
-            wsiInfo: isWsi ? {
-              format: fileName.toLowerCase().endsWith('.ndpi') ? 'ndpi' : 'svs',
-              scannerBrand: fileName.toLowerCase().endsWith('.ndpi') ? 'Hamamatsu NanoZoomer S360' : 'Leica Aperio CS2',
-              originalDimensions: '94,200 × 76,800 pixels (7.2 GPixels)',
-              pyramidLevels: 8,
-              magFactor: '40X (0.23 μm/px)'
-            } : undefined
-          });
-        }, 300);
-      }, 350);
-    }, 300);
+      setIsAnalyzing(false);
+      setResult({
+        classification: '病变组织',
+        isLesion: true,
+        confidence: 92.5,
+        confidenceScore: 0.925,
+        normalProbability: 0.075,
+        lesionProbability: 0.925,
+        lesionTypePredicted: '腺管异型性病变',
+        lesionDistributionPredicted: '局灶性结节分布',
+        affectedAreaPercentage: 42,
+        cellularAnalysis: {
+          nuclearAtypia: '细胞核轻-中度增大，染色质深染粗颗粒状，核仁隐约可见，部分极性丧失。',
+          tissueArchitecture: '腺泡/腺管结构排列紊乱，局部管腔扩张呈不规则囊状，部分区域融合。',
+          inflammatoryInfiltration: '间质可见散在慢性淋巴细胞浸润伴充血水肿。',
+          stromalReaction: '病灶周围纤维结缔组织轻度反应性增生。',
+          mitoticCount: '散在少见核分裂象 (1-2/10 HPF)'
+        },
+        hotspots: [
+          { x: 44, y: 50, radius: 46, intensity: 1.0, label: '高风险异型病变核心区' }
+        ],
+        processingTimeMs: isWsi ? 1860 : 1240,
+        modelVersion: 'patho-v2.1',
+        isFallback: false,
+        timestamp: '2026-08-27T10:32:18.000Z',
+        wsiInfo: isWsi ? {
+          format: fileName.toLowerCase().endsWith('.ndpi') ? 'ndpi' : 'svs',
+          scannerBrand: fileName.toLowerCase().endsWith('.ndpi') ? 'Hamamatsu NanoZoomer S360' : 'Leica Aperio CS2',
+          originalDimensions: '94,200 × 76,800 pixels (7.2 GPixels)',
+          pyramidLevels: 8,
+          magFactor: '40X (0.23 μm/px)'
+        } : undefined
+      });
+    }, 1100);
   };
 
   // Requirement 10: File Validation Handler supporting ndpi and svs
   const handleFileSelection = (file: File) => {
     setFormatError(null);
+    setFailureState(null);
 
     // Rule 1: Special check for filename containing "不合格"
     if (file.name.includes('不合格') || file.name.toLowerCase().includes('unqualified')) {
@@ -139,12 +171,15 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
       return;
     }
 
+    // Special allowance for failure simulation file
+    const isFailureSimulation = file.name.includes('失败');
+
     // Rule 2: File Type & Extension Check (Explicitly supports ndpi and svs!)
     const validExtensions = ['ndpi', 'svs', 'tif', 'tiff', 'jpg', 'jpeg', 'png', 'webp', 'bmp'];
     const extension = file.name.split('.').pop()?.toLowerCase();
     const hasQualifiedName = file.name.includes('合格');
 
-    if (!hasQualifiedName && (!extension || !validExtensions.includes(extension))) {
+    if (!isFailureSimulation && !hasQualifiedName && (!extension || !validExtensions.includes(extension))) {
       setFormatError(`文件格式不符合要求：当前为 .${extension || '未知'} 格式。本平台全面支持病理切片格式：NDPI (滨松全切片), SVS (Aperio全切片), TIFF, JPG, PNG, WEBP, BMP`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -240,19 +275,43 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
               </p>
             </div>
 
-            {/* Analysis Progress Loading State */}
+            {/* Analysis Progress Loading State: 仅显示“模型处理中” */}
             {isAnalyzing && (
               <div className="p-5 bg-white/95 border border-[#a4c3de] rounded-xl space-y-3 text-center shadow-xs">
                 <div className="flex items-center justify-center gap-2 text-[#0e3b66] text-sm font-bold">
                   <RefreshCw className="w-4 h-4 animate-spin text-[#0e3b66]" />
-                  <span>{analysisStage || 'AI病理显微特征提取与分类模型推理中...'}</span>
+                  <span>模型处理中</span>
                 </div>
                 <div className="w-full max-w-md mx-auto bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
                   <div className="bg-[#0e3b66] h-full w-2/3 animate-pulse rounded-full" />
                 </div>
-                <p className="text-[11px] text-[#2c537a]">
-                  支持多层级金字塔特征提取 • Grad-CAM类激活热力分布生成
-                </p>
+              </div>
+            )}
+
+            {/* 识别失败状态：显示文件名称、失败识别状态标签、失败原因。不显示”重新上传“按钮，不显示”错误码：ERR_MODEL_INFERENCE_EXCEPTION“ */}
+            {failureState && !isAnalyzing && (
+              <div 
+                id="ai-inference-failure-card"
+                className="p-5 bg-white border border-rose-200 rounded-xl shadow-xs space-y-2 animate-in fade-in"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center shrink-0">
+                    <FileWarning className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-600">
+                        文件名称：<strong className="text-slate-800 font-mono">{failureState.fileName}</strong>
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-700 border border-rose-200 font-bold">
+                        {failureState.status}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1">
+                      失败原因：<span className="text-rose-600 font-bold">{failureState.reason}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -278,92 +337,96 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
           {/* Main 2-Column Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Card: 识别结果 · 热力图叠加 */}
+            {/* Left Card: 识别结果 · 热力图叠加 (样式与操作与数据详情页面左侧图片显示模块一致，图片不改动) */}
             <div className="lg:col-span-8 flex flex-col space-y-4">
               <div 
                 ref={viewportRef}
-                className="bg-white border border-[#a4c3de]/80 rounded-2xl shadow-xs overflow-hidden"
+                className="bg-white rounded-xl border border-slate-200/90 shadow-xs flex flex-col overflow-hidden"
               >
-                {/* Card Header Bar */}
-                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-black text-sm sm:text-base text-[#102a48]">
-                      识别结果 · 热力图叠加
-                    </span>
-                    {result.wsiInfo && (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                        result.wsiInfo.format === 'ndpi'
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                      }`}>
-                        WSI {result.wsiInfo.format}
-                      </span>
-                    )}
+                {/* 控制条：物镜倍率、缩放平移复位、全屏 */}
+                <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                  {/* 物镜倍率切换 */}
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
+                    <span className="text-[11px] text-slate-500 px-1 font-medium">物镜倍率:</span>
+                    {[1, 2, 4, 10, 20].map((mag) => (
+                      <button
+                        key={mag}
+                        onClick={() => setZoom(mag)}
+                        className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold transition-all cursor-pointer ${
+                          zoom === mag
+                            ? 'bg-[#18446b] text-white shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        {mag}X
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* WSI Zoom Level Controls */}
-                    <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
-                      {(['4x', '10x', '20x', '40x'] as const).map(z => (
-                        <button
-                          key={z}
-                          type="button"
-                          onClick={() => setWsiZoom(z)}
-                          className={`px-2.5 py-0.5 rounded font-mono font-bold transition-all cursor-pointer ${
-                            wsiZoom === z ? 'bg-[#0e3b66] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          {z}
-                        </button>
-                      ))}
-                    </div>
-
+                  {/* 缩放/平移/复位控制 */}
+                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={toggleFullscreen}
-                      className="flex items-center gap-1 text-xs text-slate-600 hover:text-[#0e3b66] transition-colors cursor-pointer px-2.5 py-1 rounded hover:bg-slate-100 border border-transparent hover:border-slate-200"
-                      title={isFullscreen ? '退出全屏' : '全屏查看'}
+                      onClick={() => setZoom(prev => Math.min(30, prev + 0.5))}
+                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                      title="放大视野"
                     >
-                      {isFullscreen ? (
-                        <>
-                          <Minimize2 className="w-3.5 h-3.5" />
-                          <span>退出全屏</span>
-                        </>
-                      ) : (
-                        <>
-                          <Maximize2 className="w-3.5 h-3.5" />
-                          <span>全屏</span>
-                        </>
-                      )}
+                      <ZoomIn className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setZoom(prev => Math.max(0.5, prev - 0.5))}
+                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                      title="缩小视野"
+                    >
+                      <ZoomOut className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={handleResetView}
+                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg border border-slate-300 shadow-2xs transition-colors cursor-pointer"
+                      title="复位中心视野"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* 全屏操作 */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      id="ai-fullscreen-btn"
+                      onClick={toggleFullscreen}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                      title={isFullscreen ? '退出全屏' : '全屏显示'}
+                    >
+                      {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                      <span>{isFullscreen ? '退出全屏' : '全屏'}</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Card Content: Exact Picture 5 style with Grad-CAM heatmap overlay */}
-                <div className="p-4 sm:p-6 bg-slate-50/40 flex items-center justify-center">
-                  <div className="relative aspect-square w-full max-w-[580px] rounded-xl overflow-hidden shadow-xs flex items-center justify-center border border-slate-200/90 bg-white select-none">
+                {/* 纯净视场画布：1.0倍率不显示黑框，比例不匹配时仅左右留黑框 */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  className={`relative ${isFullscreen ? 'h-screen w-screen' : 'h-[560px] sm:h-[620px]'} overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-black select-none`}
+                >
+                  {/* 切片画布变换层：高度填满视场，比例不匹配时仅左右留黑框 */}
+                  <div
+                    style={{
+                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                      transformOrigin: 'center center',
+                      transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                    }}
+                    className="relative h-full aspect-[4/3] max-w-full flex items-center justify-center flex-shrink-0"
+                  >
                     <img
                       src={picture5ExactHeatmap}
                       alt="识别结果 · 热力图叠加"
-                      className="w-full h-full object-contain select-none"
+                      className="w-full h-full object-cover pointer-events-none"
                       style={{ opacity: isOriginalCompare ? (1 - heatmapOpacity * 0.8) : 1 }}
                     />
                   </div>
                 </div>
-
-                {/* WSI Scanner Information Banner */}
-                {result.wsiInfo && (
-                  <div className="p-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 px-5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-700">WSI扫描仪：</span>
-                      <span>{result.wsiInfo.scannerBrand}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
-                      <span>像素规格: {result.wsiInfo.originalDimensions}</span>
-                      <span>金字塔层数: {result.wsiInfo.pyramidLevels}层</span>
-                      <span>光学等效: {result.wsiInfo.magFactor}</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

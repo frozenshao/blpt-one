@@ -11,7 +11,7 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Layers, 
-  ShieldCheck, 
+  FolderKanban, 
   FlaskConical, 
   X,
   Calendar
@@ -42,8 +42,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   // 项目选中全部后增加的时间筛选条件：全部，近一年，近3年，近5年，自定义。默认选中全部
   const [timeFilter, setTimeFilter] = useState<TimeRange>('all');
-  const [customStartDate, setCustomStartDate] = useState<string>('2024-01-01');
-  const [customEndDate, setCustomEndDate] = useState<string>('2026-10-31');
+  // 自定义时间范围默认显示据今天近一年的范围：2025-11-10 至 2026-11-09
+  const [customStartDate, setCustomStartDate] = useState<string>('2025-11-10');
+  const [customEndDate, setCustomEndDate] = useState<string>('2026-11-09');
 
   const currentProject = RESEARCH_PROJECTS.find(p => p.id === selectedProjectId) || RESEARCH_PROJECTS[0];
 
@@ -167,7 +168,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <div className="text-xl font-bold font-mono text-emerald-600">{cohortNormalCount}</div>
             </div>
             <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
-              <div className="text-[11px] text-slate-500 font-medium">异常切片数</div>
+              <div className="text-[11px] text-slate-500 font-medium">病变切片数</div>
               <div className="text-xl font-bold font-mono text-rose-600">{cohortLesionCount}</div>
             </div>
             <div className="bg-white/95 rounded-xl p-3 shadow-2xs border border-white/50">
@@ -361,7 +362,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
             <div>
               <div className="text-xs font-medium text-slate-500">
-                异常切片数
+                病变切片数
               </div>
               <div className="text-2xl font-black text-[#f43f5e] font-mono tracking-tight">{currentLesion}</div>
               {selectedProjectId === 'all' && (
@@ -374,14 +375,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           <div className="p-4 flex items-center gap-4">
             <div className="w-11 h-11 rounded-full bg-[#fffbeb] border border-[#fde68a] flex items-center justify-center text-amber-600 shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+              <FolderKanban className="w-5 h-5" />
             </div>
             <div>
               <div className="text-xs font-medium text-slate-500">
-                {selectedProjectId === 'all' ? '历史累计入库' : '病变率'}
+                项目数
               </div>
               <div className="text-2xl font-black text-amber-600 font-mono tracking-tight">
-                {selectedProjectId === 'all' ? '1680' : lesionRate}
+                {selectedProjectId === 'all' ? subProjects.length : 1}
               </div>
             </div>
           </div>

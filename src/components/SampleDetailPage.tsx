@@ -10,7 +10,9 @@ import {
   Eye, 
   EyeOff, 
   ChevronRight,
-  GitFork
+  GitFork,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { PathologySample } from '../types/pathology';
 
@@ -256,6 +258,30 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
   const [showAnnotations, setShowAnnotations] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'annotations' | 'related'>('details');
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>('ann-new-1');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const viewerContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!viewerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      viewerContainerRef.current.requestFullscreen?.().catch((err) => {
+        console.error('Fullscreen request error:', err);
+      });
+    } else {
+      document.exitFullscreen?.().catch((err) => {
+        console.error('Exit fullscreen error:', err);
+      });
+    }
+  };
 
   const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
   const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
@@ -359,8 +385,8 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
           <div className="h-5 w-px bg-slate-200" />
 
-          {/* 项目名称 */}
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">
+          {/* 项目名称：不用标签样式，直接显示内容 */}
+          <span className="text-xs sm:text-sm font-bold text-[#102a48]">
             {sample.projectName || '长期毒性试验'}
           </span>
 
@@ -420,7 +446,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
               </button>
             </div>
 
-            {/* 标注图层切换 */}
+            {/* 标注图层切换与全屏操作 */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowAnnotations(!showAnnotations)}
@@ -434,25 +460,37 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                 <span>病理标注图层</span>
                 {showAnnotations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               </button>
+
+              {/* 全屏显示操作 */}
+              <button
+                id="viewer-fullscreen-btn"
+                onClick={toggleFullscreen}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                title={isFullscreen ? '退出全屏' : '全屏显示'}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <span>{isFullscreen ? '退出全屏' : '全屏'}</span>
+              </button>
             </div>
           </div>
 
-          {/* 纯净视场画布 (已彻底删除倍率、坐标、操作提示与画质栏) */}
+          {/* 纯净视场画布：1.0倍率不显示黑框，比例不匹配时仅左右留黑框 */}
           <div
+            ref={viewerContainerRef}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            className="relative h-[560px] sm:h-[620px] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-slate-900 select-none"
+            className={`relative ${isFullscreen ? 'h-screen w-screen' : 'h-[560px] sm:h-[620px]'} overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing bg-black select-none`}
           >
-            {/* 切片画布变换层 */}
+            {/* 切片画布变换层：高度填满视场，比例不匹配时仅左右留黑框，无四周多余边框 */}
             <div
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 transformOrigin: 'center center',
                 transition: isDragging ? 'none' : 'transform 0.1s ease-out'
               }}
-              className="relative w-[600px] h-[450px] max-w-full max-h-full rounded-md shadow-2xl overflow-hidden bg-slate-950 flex-shrink-0 ring-1 ring-slate-700"
+              className="relative h-full aspect-[4/3] max-w-full flex items-center justify-center flex-shrink-0"
             >
               <img
                 src={sample.imageUrl}
@@ -483,6 +521,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedAnnotationId(ann.id);
+                          setActiveTab('annotations'); // 点击标注区域自动切换至右侧“标注标签”模块
                         }}
                       >
                         <div 

@@ -48,6 +48,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '评估长期重复暴露的蓄积脏器毒性',
     cases: '520 例',
     slides: '1040 张',
+    lesions: '295 例',
     lesionRate: '56.7%',
     primaryOrgans: ['肝脏', '肾脏', '心脏'],
     filterProjectName: '长期毒性试验',
@@ -59,6 +60,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '评估单次超大剂量的急性病理损伤',
     cases: '240 例',
     slides: '480 张',
+    lesions: '142 例',
     lesionRate: '59.2%',
     primaryOrgans: ['胃', '肝脏', '小肠'],
     filterProjectName: '急性毒性试验',
@@ -70,6 +72,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '筛查长期暴露的组织肿瘤病理潜能',
     cases: '310 例',
     slides: '620 张',
+    lesions: '186 例',
     lesionRate: '60.0%',
     primaryOrgans: ['肺脏', '膀胱', '甲状腺'],
     filterProjectName: '致癌性试验',
@@ -81,6 +84,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '评估生殖器官及胚胎发育病理损伤',
     cases: '190 例',
     slides: '380 张',
+    lesions: '78 例',
     lesionRate: '41.1%',
     primaryOrgans: ['睾丸', '卵巢', '子宫'],
     filterProjectName: '生殖毒性试验',
@@ -92,6 +96,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '观察给药接触局部的组织炎性反应',
     cases: '180 例',
     slides: '360 张',
+    lesions: '88 例',
     lesionRate: '48.9%',
     primaryOrgans: ['皮肤', '血管壁', '眼黏膜'],
     filterProjectName: '局部刺激试验',
@@ -103,6 +108,7 @@ const TOXICOLOGY_PROJECTS = [
     intro: '检测中枢与外周神经系统结构病理',
     cases: '130 例',
     slides: '260 张',
+    lesions: '61 例',
     lesionRate: '46.9%',
     primaryOrgans: ['大脑皮质', '海马', '坐骨神经'],
     filterProjectName: '神经毒性试验',
@@ -282,19 +288,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </p>
               </div>
 
-              {/* 3 Metric Stats */}
-              <div className="grid grid-cols-3 gap-2 text-center py-2">
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
+              {/* 4 Metric Stats: 样本数, 切片数, 病变数, 病变率 */}
+              <div className="grid grid-cols-4 gap-1.5 text-center py-2">
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
                   <div className="text-[10px] text-slate-400">样本数</div>
-                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5">{proj.cases}</div>
+                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.cases}</div>
                 </div>
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
                   <div className="text-[10px] text-slate-400">切片数</div>
-                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5">{proj.slides}</div>
+                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.slides}</div>
                 </div>
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
+                  <div className="text-[10px] text-slate-400">病变数</div>
+                  <div className="text-xs font-bold text-[#0e3b66] font-mono mt-0.5 truncate">{proj.lesions}</div>
+                </div>
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
                   <div className="text-[10px] text-slate-400">病变率</div>
-                  <div className="text-xs font-bold text-rose-600 font-mono mt-0.5">{proj.lesionRate}</div>
+                  <div className="text-xs font-bold text-rose-600 font-mono mt-0.5 truncate">{proj.lesionRate}</div>
                 </div>
               </div>
 

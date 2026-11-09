@@ -221,21 +221,6 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
             )}
           </div>
 
-          {/* 病变名称筛选条件 */}
-          <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
-            <span className="font-medium text-[#102a48]/70">病变名称:</span>
-            <select
-              value={selectedLesion}
-              onChange={(e) => setSelectedLesion(e.target.value)}
-              aria-label="筛选病变名称"
-              className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
-            >
-              {lesionOptions.map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-
           {/* 性别 */}
           <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
             <span className="font-medium text-[#102a48]/70">性别:</span>
@@ -250,6 +235,21 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
               <option value="雌性">雌性</option>
             </select>
           </div>
+
+          {/* 病变名称筛选条件：移动至性别后面 */}
+          <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
+            <span className="font-medium text-[#102a48]/70">病变名称:</span>
+            <select
+              value={selectedLesion}
+              onChange={(e) => setSelectedLesion(e.target.value)}
+              aria-label="筛选病变名称"
+              className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
+            >
+              {lesionOptions.map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -258,7 +258,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-bold text-[#102a48] flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-[#0e3b66]" />
-            <span>不同动物种属病变率横向对比 (%)</span>
+            <span>病变率 (%)</span>
           </h4>
         </div>
 
@@ -282,8 +282,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
                   const count = isMale 
                     ? (isA ? item.payload.maleCountA : item.payload.maleCountB)
                     : (isA ? item.payload.femaleCountA : item.payload.femaleCountB);
-                  const ratio = isMale ? item.payload.maleRatio : item.payload.femaleRatio;
-                  return [`${value}% (${count}, 比值: ${ratio})`, name];
+                  return [`${value}% (${count})`, name];
                 }}
                 labelFormatter={(_label, payload) => {
                   if (payload && payload.length > 0) {

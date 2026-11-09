@@ -164,7 +164,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
             <ShieldAlert className="w-4 h-4 text-[#0e3b66]" />
             <span>
               {viewMetric === 'rate'
-                ? '各剂量组病变率'
+                ? '各剂量组病变率（%）'
                 : '各剂量组病变程度构成'}
             </span>
           </h4>
@@ -292,7 +292,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">试验剂量组</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物性别</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">病变名称</th>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变/总数</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变数/总数</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">病变率 (%)</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">程度分级分布 (1/2/3/4级)</th>
               </tr>

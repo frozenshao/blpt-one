@@ -7,10 +7,19 @@ import { SampleResultsView } from './components/SampleResultsView';
 import { SampleDetailPage } from './components/SampleDetailPage';
 import { AIClassificationView } from './components/AIClassificationView';
 import { StatsDashboard } from './components/StatsDashboard';
+import { UserManagementView } from './components/UserManagementView';
+import { LoginPage } from './components/LoginPage';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { PathologySample, PathologyFilterParams, AnimalSpecies } from './types/pathology';
 import { INITIAL_PATHOLOGY_SAMPLES } from './data/mockPathologyData';
+import { User } from './types/user';
+import { getCurrentUser, setCurrentUser as saveSessionUser } from './data/authService';
 
 export default function App() {
+  // Authentication session state
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentUser());
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
   const [activeTab, setActiveTab] = useState<NavigationTab>('home');
   const [filters, setFilters] = useState<PathologyFilterParams>({
     page: 1,
@@ -240,12 +249,37 @@ export default function App() {
     setSelectedSample(null);
   };
 
+  // Handle Logout
+  const handleLogout = () => {
+    saveSessionUser(null);
+    setCurrentUser(null);
+    setActiveTab('home');
+  };
+
+  // Handle Login Success
+  const handleLoginSuccess = (user: User) => {
+    saveSessionUser(user);
+    setCurrentUser(user);
+  };
+
+  // 1. If not logged in, render the clean full Login Page with graphical captcha
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  const isAdmin = currentUser.role === 'admin' || currentUser.username === 'admin';
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-blue-500 selection:text-white">
       {/* Global Application Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={(tab) => {
+          // If non-admin attempts to access user management, fallback to home
+          if (tab === 'users' && !isAdmin) {
+            setActiveTab('home');
+            return;
+          }
           setActiveTab(tab);
           if (tab === 'search') {
             setSelectedSample(null);
@@ -254,6 +288,9 @@ export default function App() {
             setSampleForAI(null);
           }
         }}
+        currentUser={currentUser}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onLogout={handleLogout}
         onSearch={handleGlobalSearch}
         totalSamples={facets.totalSamples || totalCount}
       />
@@ -337,7 +374,27 @@ export default function App() {
             />
           </div>
         )}
+
+        {/* Tab 4: System Management - Users (Admin only) */}
+        {activeTab === 'users' && isAdmin && (
+          <div className="animate-in fade-in duration-150">
+            <UserManagementView currentUser={currentUser} />
+          </div>
+        )}
       </main>
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && currentUser && (
+        <ChangePasswordModal
+          user={currentUser}
+          onClose={() => setIsChangePasswordOpen(false)}
+          onSuccess={() => {
+            // Updated in authService, refresh current user if needed
+            const fresh = getCurrentUser();
+            if (fresh) setCurrentUser(fresh);
+          }}
+        />
+      )}
     </div>
   );
 }
