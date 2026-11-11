@@ -9,6 +9,7 @@ import {
   PathologyFilterParams, 
   OrganSystem, 
   ORGAN_SYSTEM_DATA, 
+  ANIMAL_SPECIES_STRAIN_DATA,
   TestArticleCategory, 
   TEST_ARTICLE_DATA,
   ProjectType,
@@ -46,7 +47,9 @@ const ALL_ANIMAL_TYPES = [
   '大鼠',
   '食蟹猴',
   '比格犬',
-  '人源异种移植模型(PDX)',
+  '新西兰兔',
+  '小型猪',
+  '豚鼠',
   '斑马鱼'
 ];
 
@@ -81,13 +84,24 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
   // Collapse states for individual facet cards (matching table column sequence)
   const [openFacets, setOpenFacets] = useState<Record<string, boolean>>({
     project: true,
-    animalType: true,
-    strain: true,
+    animal: true,
     system: true,
     testArticle: true,
     gender: true,
     age: true,
     pathology: true
+  });
+
+  // Expanded animals within animal species/strain facet (二级联动)
+  const [expandedAnimals, setExpandedAnimals] = useState<Record<string, boolean>>({
+    '小鼠': true,
+    '大鼠': false,
+    '食蟹猴': false,
+    '比格犬': false,
+    '新西兰兔': false,
+    '小型猪': false,
+    '豚鼠': false,
+    '斑马鱼': false
   });
 
   // Expanded systems within system facet
@@ -112,6 +126,10 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
 
   const toggleFacet = (facetKey: string) => {
     setOpenFacets(prev => ({ ...prev, [facetKey]: !prev[facetKey] }));
+  };
+
+  const toggleExpandedAnimal = (animalName: string) => {
+    setExpandedAnimals(prev => ({ ...prev, [animalName]: !prev[animalName] }));
   };
 
   const toggleExpandedSystem = (sysName: string) => {
@@ -294,22 +312,22 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         )}
       </div>
 
-      {/* 2. 动物种属 (顺序与表格一致) */}
+      {/* 2. 动物种属/品系 (二级联动选择，与系统/脏器类型一致) */}
       <div className="border-b border-slate-200">
         <div 
-          onClick={() => toggleFacet('animalType')}
+          onClick={() => toggleFacet('animal')}
           className="bg-[#18446b] text-white px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#1f5382] transition-colors"
         >
           <div className="flex items-center gap-2 font-bold text-xs">
-            {openFacets.animalType ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>动物种属</span>
+            {openFacets.animal ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            <span>动物种属/品系</span>
           </div>
           <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
-            {filters.animalTypes?.length ? (
+            {(filters.animalTypes?.length || filters.strains?.length) ? (
               <button
                 type="button"
-                onClick={() => onFilterChange({ ...filters, animalTypes: undefined, page: 1 })}
-                title="清空种属筛选"
+                onClick={() => onFilterChange({ ...filters, animalTypes: undefined, strains: undefined, page: 1 })}
+                title="清空种属/品系筛选"
                 className="hover:text-white"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -318,84 +336,76 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
           </div>
         </div>
 
-        {openFacets.animalType && (
-          <div className="p-2 space-y-1 bg-slate-50/50 max-h-48 overflow-y-auto">
-            {ALL_ANIMAL_TYPES.map((at) => {
-              const isChecked = filters.animalTypes?.includes(at) || false;
+        {openFacets.animal && (
+          <div className="p-2 space-y-2 bg-slate-50/50">
+            <div className="space-y-1 max-h-[360px] overflow-y-auto pr-1">
+              {ALL_ANIMAL_TYPES.map((animal) => {
+                const isAnimalChecked = filters.animalTypes?.includes(animal) || false;
+                const isAnimalExpanded = expandedAnimals[animal] || false;
+                const subStrains = ANIMAL_SPECIES_STRAIN_DATA[animal] || [];
 
-              return (
-                <div 
-                  key={at}
-                  onClick={() => handleToggleAnimalType(at)}
-                  className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-colors ${
-                    isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {}}
-                      className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
-                    />
-                    <span>{at}</span>
+                return (
+                  <div key={animal} className="rounded border border-slate-200/60 bg-white overflow-hidden">
+                    <div className="flex items-center justify-between px-2 py-1.5 hover:bg-sky-50/60 transition-colors">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {subStrains.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedAnimal(animal)}
+                            className="p-0.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                          >
+                            {isAnimalExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                          </button>
+                        ) : (
+                          <div className="w-4" />
+                        )}
+                        <input
+                          type="checkbox"
+                          id={`filter-animal-${animal}`}
+                          checked={isAnimalChecked}
+                          onChange={() => handleToggleAnimalType(animal)}
+                          className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                        />
+                        <label
+                          htmlFor={`filter-animal-${animal}`}
+                          className={`text-xs font-bold cursor-pointer truncate ${isAnimalChecked ? 'text-[#18446b]' : 'text-slate-800'}`}
+                        >
+                          {animal}
+                        </label>
+                      </div>
+                    </div>
+
+                    {isAnimalExpanded && subStrains.length > 0 && (
+                      <div className="bg-slate-50/80 px-2 py-1 pl-6 space-y-1 border-t border-slate-100">
+                        {subStrains.map((strain) => {
+                          const isStrainChecked = filters.strains?.includes(strain) || false;
+
+                          return (
+                            <div key={strain} className="flex items-center justify-between py-0.5 hover:bg-slate-100/80 rounded px-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  id={`filter-strain-${strain}`}
+                                  checked={isStrainChecked}
+                                  onChange={() => handleToggleStrain(strain)}
+                                  className="w-3 h-3 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                                />
+                                <label
+                                  htmlFor={`filter-strain-${strain}`}
+                                  className={`text-[11px] cursor-pointer truncate ${isStrainChecked ? 'text-[#18446b] font-bold' : 'text-slate-700'}`}
+                                >
+                                  {strain}
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 3. 动物品系 (顺序与表格一致) */}
-      <div className="border-b border-slate-200">
-        <div 
-          onClick={() => toggleFacet('strain')}
-          className="bg-[#18446b] text-white px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#1f5382] transition-colors"
-        >
-          <div className="flex items-center gap-2 font-bold text-xs">
-            {openFacets.strain ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>动物品系</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
-            {filters.strains?.length ? (
-              <button
-                type="button"
-                onClick={() => onFilterChange({ ...filters, strains: undefined, page: 1 })}
-                title="清空品系筛选"
-                className="hover:text-white"
-              >
-                <RotateCcw className="w-3 h-3" />
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {openFacets.strain && (
-          <div className="p-2 space-y-1 bg-slate-50/50 max-h-48 overflow-y-auto">
-            {ALL_STRAINS.map((st) => {
-              const isChecked = filters.strains?.includes(st) || false;
-
-              return (
-                <div 
-                  key={st}
-                  onClick={() => handleToggleStrain(st)}
-                  className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-colors ${
-                    isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => {}}
-                      className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
-                    />
-                    <span>{st}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

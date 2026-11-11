@@ -26,12 +26,14 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
 }) => {
   const availableStrains = ['SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', 'BALB/c 小鼠'];
   const [selectedStrains, setSelectedStrains] = useState<string[]>(['SD 大鼠', 'Wistar 大鼠']);
+  const [tempSelectedStrains, setTempSelectedStrains] = useState<string[]>(['SD 大鼠', 'Wistar 大鼠']);
+  const [strainError, setStrainError] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const [selectedLesion, setSelectedLesion] = useState<string>('全部');
+  const [selectedLesions, setSelectedLesions] = useState<string[]>([]);
+  const [isLesionDropdownOpen, setIsLesionDropdownOpen] = useState<boolean>(false);
   const [selectedGender, setSelectedGender] = useState<string>('全部');
 
-  const lesionOptions = [
-    '全部',
+  const allLesionOptions = [
     '肝脏小肉芽肿',
     '肾小管嗜碱性变',
     '肝细胞脂肪变性',
@@ -40,19 +42,43 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
     '垂体前叶局灶性增生/囊肿'
   ];
 
-  const handleToggleStrain = (strain: string) => {
-    if (selectedStrains.includes(strain)) {
-      if (selectedStrains.length > 1) {
-        setSelectedStrains(selectedStrains.filter(s => s !== strain));
-      }
-    } else {
-      if (selectedStrains.length < 2) {
-        setSelectedStrains([...selectedStrains, strain]);
+  const handleToggleLesion = (lesion: string) => {
+    if (lesion === '全部') {
+      if (selectedLesions.length === allLesionOptions.length) {
+        setSelectedLesions([]);
       } else {
-        // Keep 2 by replacing the older one
-        setSelectedStrains([selectedStrains[1], strain]);
+        setSelectedLesions([...allLesionOptions]);
       }
+      return;
     }
+    if (selectedLesions.includes(lesion)) {
+      setSelectedLesions(selectedLesions.filter(l => l !== lesion));
+    } else {
+      setSelectedLesions([...selectedLesions, lesion]);
+    }
+  };
+
+  const isAllLesionsSelected =
+    selectedLesions.length === 0 ||
+    selectedLesions.length === allLesionOptions.length;
+
+  const handleToggleStrain = (strain: string) => {
+    setStrainError(null);
+    if (tempSelectedStrains.includes(strain)) {
+      setTempSelectedStrains(tempSelectedStrains.filter(s => s !== strain));
+    } else {
+      setTempSelectedStrains([...tempSelectedStrains, strain]);
+    }
+  };
+
+  const handleFinishStrainSelect = () => {
+    if (tempSelectedStrains.length !== 2) {
+      setStrainError('请选择2个种属');
+      return;
+    }
+    setStrainError(null);
+    setSelectedStrains(tempSelectedStrains);
+    setIsDropdownOpen(false);
   };
 
   const currentDataset = useMemo(() => {
@@ -92,9 +118,9 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
       if (!hasA) return false;
     }
 
-    // 2. Lesion Name Filter
-    if (selectedLesion !== '全部') {
-      if (!item.lesionName.includes(selectedLesion)) return false;
+    // 2. Lesion Name Filter (Multi-select, defaults to all)
+    if (!isAllLesionsSelected) {
+      if (!selectedLesions.some(l => item.lesionName.includes(l))) return false;
     }
 
     // 3. Gender Filter
@@ -162,8 +188,22 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
             <div 
               role="button"
               tabIndex={0}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsDropdownOpen(!isDropdownOpen); }}
+              onClick={() => {
+                if (!isDropdownOpen) {
+                  setTempSelectedStrains(selectedStrains);
+                  setStrainError(null);
+                }
+                setIsDropdownOpen(!isDropdownOpen);
+              }}
+              onKeyDown={(e) => { 
+                if (e.key === 'Enter' || e.key === ' ') {
+                  if (!isDropdownOpen) {
+                    setTempSelectedStrains(selectedStrains);
+                    setStrainError(null);
+                  }
+                  setIsDropdownOpen(!isDropdownOpen);
+                }
+              }}
               className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48] cursor-pointer hover:border-[#a4c3de] transition-colors"
             >
               <Filter className="w-3.5 h-3.5 text-[#18446b]/60" />
@@ -178,11 +218,20 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
               <div className="absolute z-20 top-full mt-1.5 left-0 w-64 bg-white border border-[#bcd7ee] rounded-xl shadow-lg p-2.5 space-y-2">
                 <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between pb-1 border-b border-slate-100">
                   <span>选择 2 个对比动物种属</span>
-                  <span className="text-[#18446b] font-bold">{selectedStrains.length}/2</span>
+                  <span className={`font-bold ${tempSelectedStrains.length === 2 ? 'text-[#18446b]' : 'text-rose-600'}`}>
+                    {tempSelectedStrains.length}/2
+                  </span>
                 </div>
+
+                {strainError && (
+                  <div className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 px-2 py-1 rounded font-medium">
+                    {strainError}
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   {availableStrains.map(strain => {
-                    const isChecked = selectedStrains.includes(strain);
+                    const isChecked = tempSelectedStrains.includes(strain);
                     return (
                       <div 
                         key={strain}
@@ -211,7 +260,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
                 <div className="pt-1.5 border-t border-slate-100 flex items-center justify-end">
                   <button
                     type="button"
-                    onClick={() => setIsDropdownOpen(false)}
+                    onClick={handleFinishStrainSelect}
                     className="px-3 py-1 bg-[#0e3b66] text-white rounded text-xs font-medium hover:bg-[#12385c] cursor-pointer"
                   >
                     完成
@@ -236,19 +285,91 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
             </select>
           </div>
 
-          {/* 病变名称筛选条件：移动至性别后面 */}
-          <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
-            <span className="font-medium text-[#102a48]/70">病变名称:</span>
-            <select
-              value={selectedLesion}
-              onChange={(e) => setSelectedLesion(e.target.value)}
-              aria-label="筛选病变名称"
-              className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
+          {/* 病变名称筛选条件：移动至性别后面，默认全部，支持多选 */}
+          <div className="relative">
+            <div 
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsLesionDropdownOpen(!isLesionDropdownOpen)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsLesionDropdownOpen(!isLesionDropdownOpen); }}
+              className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48] cursor-pointer hover:border-[#a4c3de] transition-colors"
             >
-              {lesionOptions.map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
+              <span className="font-medium text-[#102a48]/70">病变名称:</span>
+              <span className="font-semibold text-[#18446b] bg-white px-2 py-0.5 rounded border border-[#bcd7ee]">
+                {isAllLesionsSelected ? '全部' : selectedLesions.length === 1 ? selectedLesions[0] : `已选 ${selectedLesions.length} 项`}
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#18446b]/60" />
+            </div>
+
+            {isLesionDropdownOpen && (
+              <div className="absolute z-20 top-full mt-1.5 right-0 w-64 bg-white border border-[#bcd7ee] rounded-xl shadow-lg p-2.5 space-y-2">
+                <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between pb-1 border-b border-slate-100">
+                  <span>多选病变名称</span>
+                  <span className="text-[#18446b] font-bold">
+                    {isAllLesionsSelected ? '全部' : `${selectedLesions.length}/${allLesionOptions.length}`}
+                  </span>
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1">
+                  {/* 全部选项 */}
+                  <div 
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleToggleLesion('全部')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleLesion('全部'); }}
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                      isAllLesionsSelected ? 'bg-[#f0f6fc] text-[#18446b] font-semibold' : 'text-slate-700 hover:bg-[#f8fafc]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isAllLesionsSelected}
+                        readOnly
+                        className="rounded text-[#0e3b66] focus:ring-[#0e3b66] pointer-events-none"
+                      />
+                      <span>全部</span>
+                    </div>
+                    {isAllLesionsSelected && <Check className="w-3.5 h-3.5 text-[#0e3b66]" />}
+                  </div>
+
+                  {allLesionOptions.map(lesion => {
+                    const isChecked = isAllLesionsSelected || selectedLesions.includes(lesion);
+                    return (
+                      <div 
+                        key={lesion}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleToggleLesion(lesion)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleLesion(lesion); }}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
+                          isChecked ? 'bg-[#f0f6fc] text-[#18446b] font-semibold' : 'text-slate-700 hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            readOnly
+                            className="rounded text-[#0e3b66] focus:ring-[#0e3b66] pointer-events-none"
+                          />
+                          <span className="truncate">{lesion}</span>
+                        </div>
+                        {isChecked && <Check className="w-3.5 h-3.5 text-[#0e3b66]" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="pt-1.5 border-t border-slate-100 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsLesionDropdownOpen(false)}
+                    className="px-3 py-1 bg-[#0e3b66] text-white rounded text-xs font-medium hover:bg-[#12385c] cursor-pointer"
+                  >
+                    完成
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -319,9 +440,9 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee]">
+        <div className="max-h-[340px] overflow-y-auto overflow-x-auto border border-slate-200/60 rounded-xl">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">病变名称</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物性别</th>

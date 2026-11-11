@@ -14,104 +14,110 @@ interface HomePageProps {
     filters?: {
       projectName?: string;
       species?: AnimalSpecies;
+      animalType?: string;
+      animalTypes?: string[];
       organ?: string;
       keyword?: string;
     }
   ) => void;
 }
 
-// 1. Animal Species Progress Distribution Data (Replacing Primary Organs)
+// 1. 真实动物病理相关的动物种属切片分布数据
 const SPECIES_PROGRESS_DISTRIBUTION: {
   name: string;
-  sub: string;
   count: number;
   color: string;
   maxVal: number;
-  speciesKey: AnimalSpecies;
 }[] = [
-  { name: 'C57BL/6 小鼠', sub: '近交系小鼠', count: 420, color: '#18446b', maxVal: 450, speciesKey: 'C57BL/6 小鼠' },
-  { name: 'SD 大鼠', sub: '封闭群大鼠', count: 360, color: '#4a386d', maxVal: 450, speciesKey: 'SD 大鼠' },
-  { name: 'BALB/c 小鼠', sub: '近交系小鼠', count: 280, color: '#0f766e', maxVal: 450, speciesKey: 'BALB/c 小鼠' },
-  { name: 'Wistar 大鼠', sub: '封闭群大鼠', count: 240, color: '#047857', maxVal: 450, speciesKey: 'Wistar 大鼠' },
-  { name: '食蟹猴', sub: '非人灵长类(NHP)', count: 120, color: '#b45309', maxVal: 450, speciesKey: '食蟹猴' },
-  { name: '人源异种移植模型(PDX)', sub: '人源化肿瘤', count: 110, color: '#4338ca', maxVal: 450, speciesKey: '人源异种移植模型(PDX)' },
-  { name: '比格犬', sub: '非啮齿类大动物', count: 90, color: '#be123c', maxVal: 450, speciesKey: '比格犬' },
-  { name: '斑马鱼', sub: '水生模式生物', count: 60, color: '#0e7490', maxVal: 450, speciesKey: '斑马鱼' },
+  { name: '小鼠', count: 1420, color: '#18446b', maxVal: 1500 },
+  { name: '大鼠', count: 1080, color: '#4a386d', maxVal: 1500 },
+  { name: '食蟹猴', count: 380, color: '#0f766e', maxVal: 1500 },
+  { name: '比格犬', count: 260, color: '#047857', maxVal: 1500 },
+  { name: '新西兰兔', count: 180, color: '#b45309', maxVal: 1500 },
+  { name: '小型猪', count: 110, color: '#4338ca', maxVal: 1500 },
+  { name: '豚鼠', count: 80, color: '#be123c', maxVal: 1500 },
+  { name: '斑马鱼', count: 60, color: '#0e7490', maxVal: 1500 },
 ];
 
-// 2. High Standard Toxicity Project Datasets
+// 2. 项目概览数据集 (按照创建时间倒序排列，删除例/张单位，主要脏器显示系统/脏器)
 const TOXICOLOGY_PROJECTS = [
   {
-    moduleCode: '模块 01',
-    title: '长期毒性试验',
-    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    intro: '评估长期重复暴露的蓄积脏器毒性',
-    cases: '520 例',
-    slides: '1040 张',
-    lesions: '295 例',
-    lesionRate: '56.7%',
-    primaryOrgans: ['肝脏', '肾脏', '心脏'],
-    filterProjectName: '长期毒性试验',
-  },
-  {
-    moduleCode: '模块 02',
-    title: '急性毒性试验',
-    badgeClass: 'bg-rose-50 text-rose-600 border-rose-200',
-    intro: '评估单次超大剂量的急性病理损伤',
-    cases: '240 例',
-    slides: '480 张',
-    lesions: '142 例',
-    lesionRate: '59.2%',
-    primaryOrgans: ['胃', '肝脏', '小肠'],
-    filterProjectName: '急性毒性试验',
-  },
-  {
-    moduleCode: '模块 03',
-    title: '致癌性试验',
-    badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
-    intro: '筛查长期暴露的组织肿瘤病理潜能',
-    cases: '310 例',
-    slides: '620 张',
-    lesions: '186 例',
-    lesionRate: '60.0%',
-    primaryOrgans: ['肺脏', '膀胱', '甲状腺'],
-    filterProjectName: '致癌性试验',
-  },
-  {
-    moduleCode: '模块 04',
-    title: '生殖毒性试验',
-    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-    intro: '评估生殖器官及胚胎发育病理损伤',
-    cases: '190 例',
-    slides: '380 张',
-    lesions: '78 例',
-    lesionRate: '41.1%',
-    primaryOrgans: ['睾丸', '卵巢', '子宫'],
-    filterProjectName: '生殖毒性试验',
+    moduleCode: '模块 06',
+    title: '神经毒性试验',
+    badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
+    intro: '检测中枢与外周神经系统结构病理',
+    createdAt: '2026-03-15',
+    cases: '130',
+    slides: '260',
+    lesions: '61',
+    lesionRate: '46.9%',
+    primaryOrgans: ['神经系统/大脑皮质', '神经系统/海马', '神经系统/坐骨神经'],
+    filterProjectName: '神经毒性试验',
   },
   {
     moduleCode: '模块 05',
     title: '局部刺激试验',
     badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     intro: '观察给药接触局部的组织炎性反应',
-    cases: '180 例',
-    slides: '360 张',
-    lesions: '88 例',
+    createdAt: '2026-02-28',
+    cases: '180',
+    slides: '360',
+    lesions: '88',
     lesionRate: '48.9%',
-    primaryOrgans: ['皮肤', '血管壁', '眼黏膜'],
+    primaryOrgans: ['骨骼组织/皮肤', '心血管系统/血管壁', '神经系统/眼黏膜'],
     filterProjectName: '局部刺激试验',
   },
   {
-    moduleCode: '模块 06',
-    title: '神经毒性试验',
-    badgeClass: 'bg-sky-50 text-sky-700 border-sky-200',
-    intro: '检测中枢与外周神经系统结构病理',
-    cases: '130 例',
-    slides: '260 张',
-    lesions: '61 例',
-    lesionRate: '46.9%',
-    primaryOrgans: ['大脑皮质', '海马', '坐骨神经'],
-    filterProjectName: '神经毒性试验',
+    moduleCode: '模块 04',
+    title: '生殖毒性试验',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+    intro: '评估生殖器官及胚胎发育病理损伤',
+    createdAt: '2026-01-20',
+    cases: '190',
+    slides: '380',
+    lesions: '78',
+    lesionRate: '41.1%',
+    primaryOrgans: ['生殖系统/睾丸', '生殖系统/卵巢', '生殖系统/子宫'],
+    filterProjectName: '生殖毒性试验',
+  },
+  {
+    moduleCode: '模块 03',
+    title: '致癌性试验',
+    badgeClass: 'bg-purple-50 text-purple-700 border-purple-200',
+    intro: '筛查长期暴露的组织肿瘤病理潜能',
+    createdAt: '2025-11-12',
+    cases: '310',
+    slides: '620',
+    lesions: '186',
+    lesionRate: '60.0%',
+    primaryOrgans: ['呼吸系统/肺脏', '泌尿系统/膀胱', '内分泌系统/甲状腺'],
+    filterProjectName: '致癌性试验',
+  },
+  {
+    moduleCode: '模块 02',
+    title: '急性毒性试验',
+    badgeClass: 'bg-rose-50 text-rose-600 border-rose-200',
+    intro: '评估单次超大剂量的急性病理损伤',
+    createdAt: '2025-08-06',
+    cases: '240',
+    slides: '480',
+    lesions: '142',
+    lesionRate: '59.2%',
+    primaryOrgans: ['消化系统/胃', '消化系统/肝脏', '消化系统/小肠'],
+    filterProjectName: '急性毒性试验',
+  },
+  {
+    moduleCode: '模块 01',
+    title: '长期毒性试验',
+    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    intro: '评估长期重复暴露的蓄积脏器毒性',
+    createdAt: '2025-05-18',
+    cases: '520',
+    slides: '1040',
+    lesions: '295',
+    lesionRate: '56.7%',
+    primaryOrgans: ['消化系统/肝脏', '泌尿系统/肾脏', '心血管系统/心脏'],
+    filterProjectName: '长期毒性试验',
   },
 ];
 
@@ -135,7 +141,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 Pathology Data Retrieval and Analysis Platform
               </p>
               <p className="text-xs sm:text-sm text-[#274667] leading-relaxed max-w-xl font-medium">
-                本平台建于2026年，收录1,680+例高质量病理切片数据，支持多维智能检索、AI组织二分类与病理统计全景分析。
+                本平台建于2026年，收录3,520+例高质量病理切片数据，支持多维智能检索、AI组织二分类与病理统计全景分析。
               </p>
 
               {/* Action Button: GDC Navy button style */}
@@ -164,18 +170,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* 2. Cases */}
-                <div className="flex items-center gap-3 p-1.5 sm:px-3">
-                  <div className="w-9 h-9 rounded-full bg-[#fef3ee] border border-[#fcd8c7] flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-[#d9534f]" />
-                  </div>
-                  <div>
-                    <div className="text-xl font-black text-slate-900 leading-none font-mono">1,680</div>
-                    <div className="text-xs font-bold text-slate-700 mt-1">样本数</div>
-                  </div>
-                </div>
-
-                {/* 3. Slides */}
+                {/* 2. 切片数 */}
                 <div className="flex items-center gap-3 p-1.5 sm:px-3">
                   <div className="w-9 h-9 rounded-full bg-[#fef3ee] border border-[#fcd8c7] flex items-center justify-center shrink-0">
                     <FileText className="w-4 h-4 text-[#d9534f]" />
@@ -183,6 +178,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   <div>
                     <div className="text-xl font-black text-slate-900 leading-none font-mono">3,520</div>
                     <div className="text-xs font-bold text-slate-700 mt-1">切片数</div>
+                  </div>
+                </div>
+
+                {/* 3. 动物数 (原样本数，移动至切片数后面) */}
+                <div className="flex items-center gap-3 p-1.5 sm:px-3">
+                  <div className="w-9 h-9 rounded-full bg-[#fef3ee] border border-[#fcd8c7] flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-[#d9534f]" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-black text-slate-900 leading-none font-mono">1,680</div>
+                    <div className="text-xs font-bold text-slate-700 mt-1">动物数</div>
                   </div>
                 </div>
 
@@ -200,30 +206,30 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Right Column: 实验动物种属切片分布统计 */}
+          {/* Right Column: 动物种属切片分布 (高度为5条数据的高度，展示不下时滚动) */}
           <div className="lg:col-span-5 flex flex-col">
             <div className="bg-white/95 backdrop-blur-xs rounded-xl border border-slate-200/90 p-4 sm:p-5 shadow-sm flex-1 flex flex-col justify-between">
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <span className="text-xs font-extrabold text-[#102a48] tracking-tight">
-                  实验动物种属切片分布统计
+                  动物种属切片分布
                 </span>
               </div>
 
-              {/* Progress Bar List */}
-              <div className="space-y-2.5 my-3">
+              {/* Progress Bar List: 高度设置为5条数据的高度(约188px)，超出5条时支持纵向滚动 */}
+              <div className="space-y-2.5 my-3 max-h-[188px] overflow-y-auto pr-1">
                 {SPECIES_PROGRESS_DISTRIBUTION.map((item) => {
                   const widthPercent = (item.count / item.maxVal) * 100;
                   return (
                     <div 
                       key={item.name}
-                      onClick={() => onNavigate('search', { species: item.speciesKey })}
+                      onClick={() => onNavigate('search', { animalType: item.name })}
                       className="group cursor-pointer"
-                      title={`点击进入 ${item.name} 切片检索`}
+                      title={`点击筛选 ${item.name} 切片数据`}
                     >
                       <div className="flex items-center justify-between text-[11px] mb-1">
                         <span className="font-semibold text-slate-700 group-hover:text-[#18446b] transition-colors">
-                          {item.name} <span className="text-[10px] text-slate-400 font-normal">({item.sub})</span>
+                          {item.name}
                         </span>
                         <span className="font-mono font-bold text-slate-800 text-[11px]">
                           {item.count}
@@ -242,17 +248,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                   );
                 })}
               </div>
-
-              {/* Card Footer */}
-              <div className="pt-2.5 border-t border-slate-100 flex items-center justify-end text-[11px]">
-                <button
-                  onClick={() => onNavigate('search')}
-                  className="inline-flex items-center gap-1 text-[#18446b] hover:text-[#0e3b66] font-bold cursor-pointer group"
-                >
-                  <span>查看全部种属</span>
-                  <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </div>
             </div>
           </div>
 
@@ -268,7 +263,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
           </h2>
         </div>
 
-        {/* 6 Project Cards (3x2 Grid) */}
+        {/* 6 Project Cards (3x2 Grid) - 按照创建时间倒序排列 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {TOXICOLOGY_PROJECTS.map((proj, idx) => (
             <div
@@ -276,30 +271,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('search', { projectName: proj.filterProjectName })}
               className="bg-white rounded-xl border border-slate-200/90 hover:border-purple-300 hover:shadow-lg transition-all p-5 flex flex-col justify-between group cursor-pointer text-slate-800"
             >
-              {/* Header row: Index and Title, no box */}
+              {/* Header row: Index, Title, and 创建时间 */}
               <div>
-                <div className="text-sm font-bold text-slate-800 group-hover:text-purple-700 transition-colors">
-                  <span className="font-mono text-slate-400 mr-2">{String(idx + 1).padStart(2, '0')}</span>
-                  {proj.title}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-bold text-slate-800 group-hover:text-purple-700 transition-colors">
+                    <span className="font-mono text-slate-400 mr-2">{String(idx + 1).padStart(2, '0')}</span>
+                    {proj.title}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 shrink-0">
+                    创建时间: {proj.createdAt}
+                  </div>
                 </div>
-                {/* Project Intro: small gray text, no '项目介绍' header box */}
+                {/* Project Intro */}
                 <p className="text-xs text-slate-500 leading-relaxed mt-2 mb-3.5">
                   {proj.intro}
                 </p>
               </div>
 
-              {/* 4 Metric Stats: 样本数, 切片数, 病变数, 病变率 */}
+              {/* 4 Metric Stats: 切片数, 动物数, 病变动物数, 病变率 (不含例、张单位) */}
               <div className="grid grid-cols-4 gap-1.5 text-center py-2">
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
-                  <div className="text-[10px] text-slate-400">样本数</div>
-                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.cases}</div>
-                </div>
                 <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
                   <div className="text-[10px] text-slate-400">切片数</div>
                   <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.slides}</div>
                 </div>
                 <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
-                  <div className="text-[10px] text-slate-400">病变数</div>
+                  <div className="text-[10px] text-slate-400">动物数</div>
+                  <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.cases}</div>
+                </div>
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
+                  <div className="text-[10px] text-slate-400">病变动物数</div>
                   <div className="text-xs font-bold text-[#0e3b66] font-mono mt-0.5 truncate">{proj.lesions}</div>
                 </div>
                 <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
@@ -308,7 +308,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </div>
               </div>
 
-              {/* Primary Organs */}
+              {/* Primary Organs: 显示具体的消化系统及脏器，例如“消化系统/肝脏” */}
               <div className="flex items-center gap-1.5 mt-3 text-[11px] text-slate-500 flex-wrap">
                 <span className="text-slate-400 text-[10px]">主要脏器:</span>
                 {proj.primaryOrgans.map((organ) => (
@@ -319,12 +319,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     {organ}
                   </span>
                 ))}
-              </div>
-
-              {/* Footer CTA Link */}
-              <div className="pt-3.5 mt-3.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-[#4a386d] group-hover:text-purple-600 transition-colors">
-                <span>探索此项目切片数据</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
               </div>
             </div>
           ))}

@@ -320,9 +320,9 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee]">
+        <div className="max-h-[340px] overflow-y-auto overflow-x-auto border border-slate-200/60 rounded-xl">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">背景病变名称</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物种属</th>

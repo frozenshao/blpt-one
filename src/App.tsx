@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Search } from 'lucide-react';
 import { Header, NavigationTab } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { SearchFilterPanel } from './components/SearchFilterPanel';
@@ -94,7 +95,13 @@ export default function App() {
         filtered = filtered.filter(s => s.system && currentFilters.systems!.includes(s.system));
       }
       if (currentFilters.organs && currentFilters.organs.length > 0) {
-        filtered = filtered.filter(s => currentFilters.organs!.includes(s.organ));
+        filtered = filtered.filter(s => 
+          currentFilters.organs!.some(org => 
+            s.organ === org || 
+            org.includes(s.organ) || 
+            s.organ.includes(org)
+          )
+        );
       }
       if (currentFilters.testArticleCategory && currentFilters.testArticleCategory !== '全部') {
         filtered = filtered.filter(s => s.testArticleCategory === currentFilters.testArticleCategory);
@@ -220,16 +227,20 @@ export default function App() {
     presetFilters?: {
       projectName?: string;
       species?: AnimalSpecies;
+      animalType?: string;
+      animalTypes?: string[];
       organ?: string;
       keyword?: string;
     }
   ) => {
     if (presetFilters) {
+      const animalTypes = presetFilters.animalTypes || (presetFilters.animalType ? [presetFilters.animalType] : undefined);
       setFilters(prev => ({
         ...prev,
         page: 1,
-        ...(presetFilters.projectName ? { projectName: presetFilters.projectName } : {}),
+        ...(presetFilters.projectName ? { projectName: presetFilters.projectName, projectNames: [presetFilters.projectName] } : {}),
         ...(presetFilters.species ? { species: [presetFilters.species] } : {}),
+        ...(animalTypes ? { animalTypes } : {}),
         ...(presetFilters.organ ? { organs: [presetFilters.organ as any] } : {}),
         ...(presetFilters.keyword ? { keyword: presetFilters.keyword } : {}),
       }));
@@ -313,7 +324,17 @@ export default function App() {
               onSelectSample={(s) => setSelectedSample(s)}
             />
           ) : (
-            <div className="space-y-3 animate-in fade-in duration-150 w-full">
+            <div className="space-y-4 animate-in fade-in duration-150 w-full">
+              {/* 独立页面标题 */}
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#18446b] to-[#0e3b66] text-white flex items-center justify-center shadow-xs">
+                  <Search className="w-5 h-5 text-sky-200" />
+                </div>
+                <h1 className="text-xl sm:text-2xl font-black text-[#102a48] tracking-tight">
+                  多维检索
+                </h1>
+              </div>
+
               {/* 1. GDC Navy Cohort Bar and Active Filters Strip (Full Width) */}
               <GdcCohortBar
                 filters={filters}

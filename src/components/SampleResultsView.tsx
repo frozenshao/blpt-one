@@ -58,7 +58,7 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
             type="text"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="快速搜索样本编号、诊断"
+            placeholder="快速搜索切片编号、诊断"
             className="pl-8 pr-3 py-1.5 rounded text-xs border border-slate-300 focus:outline-none focus:border-[#18446b] w-56 sm:w-72 bg-slate-50 focus:bg-white transition-all"
           />
         </div>
@@ -68,20 +68,17 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
       {isLoading ? (
         <div className="py-24 flex flex-col items-center justify-center text-slate-500 gap-3">
           <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-semibold text-slate-600">正在检索多维病理样本数据库...</p>
+          <p className="text-xs font-semibold text-slate-600">正在检索病理数据库...</p>
         </div>
       ) : displayedSamples.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3 text-center px-4">
           <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
             <Tag className="w-6 h-6" />
           </div>
-          <p className="text-sm font-semibold text-slate-800">未找到符合当前多维筛选条件的病理样本</p>
-          <p className="text-xs text-slate-500 max-w-md">
-            请尝试在左侧筛选面板中放宽项目名称、动物种属、系统/脏器类型或受试物条件。
-          </p>
+          <p className="text-sm font-semibold text-slate-800">未找到符合当前筛选条件的病理数据</p>
         </div>
       ) : (
-        /* 数据表格视图 - 严格按照列顺序，无排序箭头，样本编号纯文本 */
+        /* 数据表格视图 - 严格按照列顺序，无排序箭头，切片编号纯文本 */
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-700 border-collapse">
             <thead className="bg-[#f8fafc] text-slate-700 border-b border-slate-300 font-bold tracking-tight whitespace-nowrap">
@@ -91,19 +88,14 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                   项目名称
                 </th>
 
-                {/* 2. 样本编号 */}
+                {/* 2. 切片编号 */}
                 <th className="py-3 px-3 min-w-[200px]">
-                  样本编号
+                  切片编号
                 </th>
 
-                {/* 3. 动物种属 */}
-                <th className="py-3 px-3 min-w-[120px]">
-                  动物种属
-                </th>
-
-                {/* 4. 动物品系 */}
-                <th className="py-3 px-3 min-w-[130px]">
-                  动物品系
+                {/* 3. 动物种属/品系 */}
+                <th className="py-3 px-3 min-w-[140px]">
+                  动物种属/品系
                 </th>
 
                 {/* 5. 系统/脏器类型 (显示在动物品系列后) */}
@@ -166,23 +158,21 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                       </span>
                     </td>
 
-                    {/* 2. 样本编号 (不显示任何图标和原点，纯文本) */}
+                    {/* 2. 切片编号 (不显示任何图标和原点，纯文本) */}
                     <td className="py-3 px-3 whitespace-nowrap font-mono text-xs font-bold text-[#18446b]">
                       {displayCode}
                     </td>
 
-                    {/* 3. 动物种属 */}
+                    {/* 3. 动物种属/品系 (动物种属在第一行，动物品系在第二行) */}
                     <td className="py-3 px-3 whitespace-nowrap">
-                      <span className="font-bold text-slate-800 text-xs">
-                        {sample.species}
-                      </span>
-                    </td>
-
-                    {/* 4. 动物品系 */}
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      <span className="font-medium text-slate-700 text-xs">
-                        {sample.strain || sample.species}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-xs leading-tight">
+                          {sample.species}
+                        </span>
+                        <span className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                          {sample.strain || sample.species}
+                        </span>
+                      </div>
                     </td>
 
                     {/* 5. 系统/脏器类型 (系统名显示在第一行，脏器显示在第二行，不显示蓝色点) */}

@@ -30,6 +30,7 @@ interface DetailAnnotationItem {
   type: string;
   organ: string;
   description: string;
+  remarks?: string;
   x: number;
   y: number;
   width: number;
@@ -91,6 +92,7 @@ const DETAIL_ANNOTATIONS: DetailAnnotationItem[] = [
     type: '病变组织',
     organ: '肾脏',
     description: '皮质/髓质，单形核细胞浸润；多灶性, 轻微',
+    remarks: '备注：送检肾脏组织（皮质/髓质）镜下可见多灶性、轻微单形核细胞浸润',
     x: 32,
     y: 56,
     width: 38,
@@ -370,7 +372,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
   return (
     <div id="sample-detail-page" className="space-y-4 animate-in fade-in duration-200">
-      {/* 顶部操作条：仅展示“返回”按钮、项目名称和样本编号 */}
+      {/* 顶部操作条：仅展示“返回”按钮、项目名称和切片编号 */}
       <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
@@ -390,7 +392,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
             {sample.projectName || '长期毒性试验'}
           </span>
 
-          {/* 样本编号 */}
+          {/* 切片编号 */}
           <span className="font-mono text-base sm:text-lg font-bold text-[#18446b]">
             {displayCode}
           </span>
@@ -699,6 +701,11 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                       <p className="text-xs text-slate-600 leading-relaxed pl-5">
                         {ann.description}
                       </p>
+                      {ann.remarks && (
+                        <p className="text-[11px] text-slate-500 leading-relaxed pl-5 mt-1.5 pt-1.5 border-t border-slate-200 font-medium">
+                          {ann.remarks}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -729,7 +736,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                         className="p-3 bg-white border border-slate-200 hover:border-[#18446b] rounded-xl flex items-center justify-between gap-3 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
                       >
                         <div className="flex flex-col gap-1 min-w-0">
-                          {/* 样本编号与组织状态 */}
+                          {/* 切片编号与组织状态 */}
                           <div className="flex items-center gap-2.5 flex-wrap">
                             <span className="font-mono font-bold text-[#18446b] text-xs">
                               {rel.sampleCode.replace(/\.[^/.]+$/, '')}

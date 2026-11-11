@@ -10,15 +10,50 @@ export type OrganSystem =
   | '淋巴系统';
 
 export const ORGAN_SYSTEM_DATA: Record<OrganSystem, string[]> = {
-  '消化系统': ['肝脏', '胃', '小肠', '大肠', '胰腺', '胆囊', '食管', '口腔/唾液腺'],
-  '心血管系统': ['心脏', '主动脉', '外周血管'],
-  '内分泌系统': ['甲状腺', '肾上腺', '垂体', '甲状旁腺', '胰岛'],
-  '骨骼组织': ['骨骼', '骨髓', '关节软骨', '骨骼肌'],
-  '呼吸系统': ['肺脏', '气管', '支气管', '鼻腔'],
-  '生殖系统': ['睾丸', '附睾', '前列腺', '卵巢', '子宫', '阴道', '乳腺'],
-  '泌尿系统': ['肾脏', '输尿管', '膀胱', '尿道'],
-  '神经系统': ['大脑皮质', '海马', '小脑', '脑干', '脊髓', '坐骨神经'],
-  '淋巴系统': ['脾脏', '胸腺', '淋巴结', '扁桃体']
+  '消化系统': ['肝脏', '胃(前胃/腺胃)', '十二指肠', '空肠/回肠', '盲肠', '结肠/直肠', '胰腺', '胆囊', '食管', '唾液腺(颌下腺/腮腺)'],
+  '心血管系统': ['心脏', '主动脉'],
+  '内分泌系统': ['甲状腺', '甲状旁腺', '肾上腺', '垂体'],
+  '骨骼组织': ['骨髓(胸骨/股骨)', '股骨/关节', '骨骼肌(股四头肌)', '皮肤及皮下组织'],
+  '呼吸系统': ['肺脏', '气管', '支气管', '鼻腔/鼻甲'],
+  '生殖系统': ['睾丸', '附睾', '前列腺', '精囊腺', '卵巢', '子宫', '阴道', '乳腺'],
+  '泌尿系统': ['肾脏', '输尿管', '膀胱'],
+  '神经系统': ['大脑', '小脑', '脑干', '脊髓', '坐骨神经', '哈氏腺(Harderian gland)'],
+  '淋巴系统': ['脾脏', '胸腺', '肠系膜淋巴结', '颌下淋巴结']
+};
+
+export const ANIMAL_SPECIES_STRAIN_DATA: Record<string, string[]> = {
+  '小鼠': [
+    'C57BL/6J',
+    'BALB/c',
+    'ICR (CD-1)',
+    'KM (昆明小鼠)',
+    'NOD/SCID'
+  ],
+  '大鼠': [
+    'Sprague-Dawley (SD大鼠)',
+    'Wistar大鼠',
+    'F344大鼠 (Fischer 344)'
+  ],
+  '食蟹猴': [
+    '食蟹猴 (Macaca fascicularis)',
+    '恒河猴 (Macaca mulatta)'
+  ],
+  '比格犬': [
+    '比格犬 (Beagle Dog)'
+  ],
+  '新西兰兔': [
+    '新西兰白兔 (New Zealand White)'
+  ],
+  '豚鼠': [
+    'Hartley豚鼠'
+  ],
+  '小型猪': [
+    '巴马小型猪',
+    '哥廷根小型猪'
+  ],
+  '斑马鱼': [
+    'AB品系野生型'
+  ]
 };
 
 export type TestArticleCategory = '药品' | '医疗器械' | '化妆品';
@@ -77,14 +112,20 @@ export type LesionName = string;
 export type LesionDistribution = string;
 
 export type AnimalSpecies = 
+  | '小鼠'
+  | '大鼠'
+  | '食蟹猴' 
+  | '比格犬' 
+  | '新西兰兔'
+  | '豚鼠'
+  | '小型猪'
+  | '斑马鱼'
   | 'C57BL/6 小鼠' 
   | 'BALB/c 小鼠' 
   | 'SD 大鼠' 
   | 'Wistar 大鼠' 
-  | '食蟹猴' 
-  | '比格犬' 
   | '人源异种移植模型(PDX)' 
-  | '斑马鱼';
+  | string;
 
 export type GenderType = '雄性 (Male)' | '雌性 (Female)' | '混合/未指定';
 
@@ -99,6 +140,7 @@ export interface PathologyAnnotation {
   height: number;
   probability: number;
   description: string;
+  remarks?: string;
 }
 
 export interface HeatmapPoint {

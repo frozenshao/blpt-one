@@ -286,9 +286,9 @@ export const TimelineAnalysisSection: React.FC = () => {
       </div>
 
       {/* 详细阶段收录数据表格 */}
-      <div className="overflow-x-auto rounded-xl border border-[#bcd7ee]">
+      <div className="max-h-[340px] overflow-y-auto overflow-x-auto rounded-xl border border-[#bcd7ee]">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee]">
+          <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
             <tr>
               <th className="py-2.5 px-3">收录时期</th>
               <th className="py-2.5 px-3 text-center">收录样本量</th>

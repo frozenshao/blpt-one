@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -8,7 +9,7 @@ import { PathologySample, PathologyFilterParams, ClassificationResult, HeatmapPo
 dotenv.config();
 
 export const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // Enable JSON parser with large payload support for high-res slide images (up to 50mb)
 app.use(express.json({ limit: '50mb' }));
@@ -70,7 +71,13 @@ app.post('/api/pathology/search', (req, res) => {
 
     // Organ / Gland filter (multi-select)
     if (params.organs && params.organs.length > 0) {
-      filtered = filtered.filter(item => params.organs!.includes(item.organ));
+      filtered = filtered.filter(item => 
+        params.organs!.some(org => 
+          item.organ === org || 
+          org.includes(item.organ) || 
+          item.organ.includes(org)
+        )
+      );
     }
 
     // Project filter (7 project categories: '长期毒性试验', '急性毒性试验', '致癌性试验', '生殖毒性试验', '局部刺激试验', '神经毒性试验', '其他')
@@ -566,15 +573,38 @@ app.get('/api/pathology/stats', (req, res) => {
   });
 });
 
+// Ignore WebSocket/HMR port conflicts per environment guidelines
+process.on('uncaughtException', (err: any) => {
+  if (err?.code === 'EADDRINUSE' && (err?.port === 24678 || String(err?.message || '').includes('24678'))) {
+    console.warn('[Vite WS] Ignored Port 24678 in use error:', err.message);
+    return;
+  }
+  console.error('[Server UncaughtException]', err);
+});
+
 // Vite Middleware & Static Serving
 async function startServer() {
+  const server = http.createServer(app);
+  let viteServer: any = null;
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
+    viteServer = await createViteServer({
+      server: { 
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : { server },
+      },
       appType: 'spa',
     });
-    app.use(vite.middlewares);
+
+    // Safely catch and ignore any WebSocket errors on Vite's WS instance
+    if (viteServer.ws) {
+      viteServer.ws.on?.('error', (err: any) => {
+        console.warn('[Vite WS] WebSocket error ignored:', err?.message || err);
+      });
+    }
+
+    app.use(viteServer.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
@@ -583,8 +613,25 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Pathology Analysis Platform running on http://localhost:${PORT}`);
+  });
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`[Server] Port ${PORT} is already in use by an active instance; continuing with active instance.`);
+    } else {
+      console.error('[Server] Listen error:', err);
+    }
+  });
+
+  process.on('SIGTERM', () => {
+    viteServer?.close();
+    server.close();
+  });
+  process.on('SIGINT', () => {
+    viteServer?.close();
+    server.close();
   });
 }
 

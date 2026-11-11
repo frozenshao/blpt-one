@@ -211,7 +211,7 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-[#0e3b66]" />
             <span className="text-xs font-bold text-[#102a48]">
-              病变率（%）
+              病变率 (%)
             </span>
           </div>
         </div>
@@ -253,16 +253,22 @@ export const TestArticleTargetOrgansSection: React.FC<TestArticleTargetOrgansSec
         </div>
       </div>
 
-      {/* 靶器官病理表征明细列表 - 无框格，统一黑色普通字体不加粗 */}
+      {/* 靶器官病理表征明细列表 - 无框格，统一黑色普通字体不加粗，高度最多8条滚动 */}
       <div className="space-y-2">
-        <div className="overflow-x-auto">
+        <div className="py-1 flex items-center justify-between">
+          <span className="text-xs font-medium text-black">
+            共{currentProfile.targetOrganStats.length}条
+          </span>
+        </div>
+
+        <div className="max-h-[340px] overflow-y-auto overflow-x-auto border border-slate-200/60 rounded-xl">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee]">
+            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">靶器官名称</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">所属系统</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变数/总数</th>
-                <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变率 (%)</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48] text-center">病变率</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">

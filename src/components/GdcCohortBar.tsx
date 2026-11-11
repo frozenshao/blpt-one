@@ -219,7 +219,7 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
           <div className="p-3 bg-white min-h-[46px] flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
             {activeFilters.length === 0 ? (
               <div className="text-xs text-slate-500 italic flex items-center gap-2">
-                <span>当前未应用任何筛选限制条件，展示全库样本</span>
+                <span>当前未应用任何筛选限制条件，展示全库数据</span>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
@@ -239,16 +239,6 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
                   </span>
                 ))}
               </div>
-            )}
-
-            {activeFilters.length > 0 && (
-              <button
-                type="button"
-                onClick={onReset}
-                className="text-xs text-rose-600 hover:text-rose-800 font-semibold hover:underline cursor-pointer ml-auto"
-              >
-                清除所有筛选
-              </button>
             )}
           </div>
         )}

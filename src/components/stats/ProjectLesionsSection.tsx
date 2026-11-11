@@ -28,26 +28,42 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
   const speciesList = ['SD 大鼠', 'Wistar 大鼠', 'C57BL/6 小鼠', '食蟹猴'];
   const [selectedSpecies, setSelectedSpecies] = useState<string>(speciesList[0]);
   const [selectedCohort, setSelectedCohort] = useState<string>('全部');
-  const [selectedGender, setSelectedGender] = useState<string>('性别');
+  const [selectedGender, setSelectedGender] = useState<string>('全部');
   const [viewMetric, setViewMetric] = useState<'rate' | 'severity'>('rate');
+
+  // Extract unique lesion names for current project
+  const availableLesions = React.useMemo(() => {
+    const list = Array.from(new Set(rawList.map(item => item.lesionName)));
+    return list.length > 0 ? list : ['肝细胞脂肪变性'];
+  }, [rawList]);
+
+  const [selectedLesion, setSelectedLesion] = useState<string>(() => availableLesions[0] || '肝细胞脂肪变性');
+
+  // Sync selectedLesion when project changes
+  React.useEffect(() => {
+    if (availableLesions.length > 0 && !availableLesions.includes(selectedLesion)) {
+      setSelectedLesion(availableLesions[0]);
+    }
+  }, [availableLesions, selectedLesion]);
 
   // Extract cohorts for filter
   const cohortOptions = ['全部', ...Array.from(new Set(rawList.map(item => item.cohort)))];
 
   const filteredData = rawList.filter(item => {
+    if (selectedLesion && item.lesionName !== selectedLesion) return false;
     if (selectedCohort !== '全部' && item.cohort !== selectedCohort) return false;
-    if (selectedGender !== '性别' && selectedGender !== '全部' && item.gender !== selectedGender) return false;
+    if (selectedGender !== '全部' && item.gender !== selectedGender) return false;
     return true;
   });
 
   // Prepare chart data: 同一个剂量组的雌性和雄性展示在一起
   const cohortsToDisplay = selectedCohort === '全部'
-    ? Array.from(new Set(rawList.map(item => item.cohort)))
+    ? Array.from(new Set(rawList.filter(item => !selectedLesion || item.lesionName === selectedLesion).map(item => item.cohort)))
     : [selectedCohort];
 
   const chartData = cohortsToDisplay.map(cohortName => {
-    const maleItem = rawList.find(item => item.cohort === cohortName && item.gender === '雄性');
-    const femaleItem = rawList.find(item => item.cohort === cohortName && item.gender === '雌性');
+    const maleItem = rawList.find(item => item.cohort === cohortName && item.gender === '雄性' && (!selectedLesion || item.lesionName === selectedLesion));
+    const femaleItem = rawList.find(item => item.cohort === cohortName && item.gender === '雌性' && (!selectedLesion || item.lesionName === selectedLesion));
 
     const maleG1 = maleItem?.severityDistribution.grade1Minimal || 0;
     const maleG2 = maleItem?.severityDistribution.grade2Mild || 0;
@@ -64,10 +80,10 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
     return {
       name: shortCohort,
       cohort: cohortName,
-      lesion: maleItem?.lesionName || femaleItem?.lesionName || '病变',
+      lesion: maleItem?.lesionName || femaleItem?.lesionName || selectedLesion,
       // Incidence rate comparison
-      '雄性病变率 (%)': maleItem ? maleItem.incidenceRate : 0,
-      '雌性病变率 (%)': femaleItem ? femaleItem.incidenceRate : 0,
+      '雄性': maleItem ? maleItem.incidenceRate : 0,
+      '雌性': femaleItem ? femaleItem.incidenceRate : 0,
       maleRatio: maleItem ? `${maleItem.affectedAnimals}/${maleItem.totalAnimals}` : '0/20',
       femaleRatio: femaleItem ? `${femaleItem.affectedAnimals}/${femaleItem.totalAnimals}` : '0/20',
       // Male severity breakdown: 1级, 2级, 3级, 4级
@@ -94,8 +110,8 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
   };
 
-  const isMaleVisible = selectedGender === '性别' || selectedGender === '全部' || selectedGender === '雄性';
-  const isFemaleVisible = selectedGender === '性别' || selectedGender === '全部' || selectedGender === '雌性';
+  const isMaleVisible = selectedGender === '全部' || selectedGender === '雄性';
+  const isFemaleVisible = selectedGender === '全部' || selectedGender === '雌性';
 
   return (
     <div className="bg-white border border-[#a4c3de]/80 rounded-2xl p-5 sm:p-6 shadow-xs space-y-6">
@@ -110,7 +126,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
           </h3>
         </div>
 
-        {/* Filter Controls: 动物种属(最前、单选、默认第1项、不含全部) -> 剂量组 -> 性别 */}
+        {/* Filter Controls: 动物种属 -> 剂量组 -> 性别 -> 病变名称 */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
             <span className="font-medium text-[#102a48]/70">动物种属:</span>
@@ -149,9 +165,23 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
               aria-label="筛选动物性别"
               className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
             >
-              <option value="性别">性别</option>
+              <option value="全部">全部</option>
               <option value="雄性">雄性</option>
               <option value="雌性">雌性</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
+            <span className="font-medium text-[#102a48]/70">病变名称:</span>
+            <select
+              value={selectedLesion}
+              onChange={(e) => setSelectedLesion(e.target.value)}
+              aria-label="筛选病变名称"
+              className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
+            >
+              {availableLesions.map(l => (
+                <option key={l} value={l}>{l}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -164,8 +194,8 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
             <ShieldAlert className="w-4 h-4 text-[#0e3b66]" />
             <span>
               {viewMetric === 'rate'
-                ? '各剂量组病变率（%）'
-                : '各剂量组病变程度构成'}
+                ? '病变率 (%)'
+                : '病变动物数'}
             </span>
           </h4>
 
@@ -191,7 +221,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   : 'text-slate-600 hover:text-[#102a48]'
               }`}
             >
-              病变程度构成
+              病变程度
             </button>
           </div>
         </div>
@@ -210,33 +240,39 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                 <Tooltip 
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: any, item: any) => {
-                    const ratio = name === '雄性病变率 (%)' ? item.payload.maleRatio : item.payload.femaleRatio;
+                    const ratio = name === '雄性' ? item.payload.maleRatio : item.payload.femaleRatio;
                     return [`${value}% (${ratio})`, name];
                   }}
                   labelFormatter={(_label, payload) => {
                     if (payload && payload.length > 0) {
-                      return `${payload[0].payload.cohort} · ${payload[0].payload.lesion}`;
+                      return `${payload[0].payload.cohort}`;
                     }
                     return '';
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: 10 }} />
                 {isMaleVisible && (
-                  <Bar dataKey="雄性病变率 (%)" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="雄性" fill="#2563eb" radius={[4, 4, 0, 0]} />
                 )}
                 {isFemaleVisible && (
-                  <Bar dataKey="雌性病变率 (%)" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="雌性" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                 )}
               </BarChart>
             ) : (
               /* Severity Grade Breakdown Stacked Bar Chart: 1级, 2级, 3级, 4级 */
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 25 }}>
                 <XAxis 
                   dataKey="name" 
                   stroke="#64748b" 
                   fontSize={12} 
                 />
-                <YAxis stroke="#64748b" fontSize={11} unit="只" allowDecimals={false} />
+                <YAxis 
+                  stroke="#64748b" 
+                  fontSize={11} 
+                  unit="只" 
+                  allowDecimals={false}
+                  label={{ value: '病变动物数', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748b', dy: 40 }}
+                />
                 <Tooltip 
                   contentStyle={tooltipStyle}
                   formatter={(value: any, name: any) => {
@@ -246,7 +282,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   labelFormatter={(_label, payload) => {
                     if (payload && payload.length > 0) {
                       const d = payload[0].payload;
-                      return `${d.cohort} · ${d.lesion} (病变: 雄性${d.maleTotal}只 / 雌性${d.femaleTotal}只)`;
+                      return `${d.cohort} (病变: 雄性${d.maleTotal}只 / 雌性${d.femaleTotal}只)`;
                     }
                     return '';
                   }}
@@ -277,7 +313,7 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
         </div>
       </div>
 
-      {/* Detailed Lesion Statistics Table - 无框格，除程度分级外数据统一黑色普通字体不加粗 */}
+      {/* Detailed Lesion Statistics Table - 最多展示8条数据，展示不下时表头固定滚动内容 */}
       <div className="space-y-2">
         <div className="py-1 flex items-center justify-between">
           <span className="text-xs font-medium text-black">
@@ -285,15 +321,14 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee]">
+        <div className="max-h-[340px] overflow-y-auto overflow-x-auto border border-slate-200/60 rounded-xl">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">试验剂量组</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48]">组别</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物性别</th>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变名称</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">病变数/总数</th>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变率 (%)</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变率</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">程度分级分布 (1/2/3/4级)</th>
               </tr>
             </thead>
@@ -305,9 +340,6 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
                   </td>
                   <td className="py-2.5 px-3 text-black font-normal whitespace-nowrap">
                     {item.gender}
-                  </td>
-                  <td className="py-2.5 px-3 text-black font-normal">
-                    {item.lesionName}
                   </td>
                   <td className="py-2.5 px-3 text-black font-normal whitespace-nowrap">
                     {item.affectedAnimals} / {item.totalAnimals}

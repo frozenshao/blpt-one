@@ -180,7 +180,7 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
     const hasQualifiedName = file.name.includes('合格');
 
     if (!isFailureSimulation && !hasQualifiedName && (!extension || !validExtensions.includes(extension))) {
-      setFormatError(`文件格式不符合要求：当前为 .${extension || '未知'} 格式。本平台全面支持病理切片格式：NDPI (滨松全切片), SVS (Aperio全切片), TIFF, JPG, PNG, WEBP, BMP`);
+      setFormatError(`文件格式不符合要求：当前为 .${extension || '未知'} 格式。本平台支持.ndpi/.svs/.tif/.mrxs格式`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
@@ -223,12 +223,22 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 独立页面标题 */}
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#18446b] to-[#0e3b66] text-white flex items-center justify-center shadow-xs">
+          <Sparkles className="w-5 h-5 text-sky-200" />
+        </div>
+        <h1 className="text-xl sm:text-2xl font-black text-[#102a48] tracking-tight">
+          AI组织识别
+        </h1>
+      </div>
+
       {/* Hidden File Input supporting ndpi, svs, tif, etc. */}
       <input
         ref={fileInputRef}
         id="pathology-file-input"
         type="file"
-        accept=".ndpi,.svs,.tif,.tiff,.jpg,.jpeg,.png,.webp,.bmp"
+        accept=".ndpi,.svs,.tif,.tiff,.mrxs,.jpg,.jpeg,.png,.webp,.bmp"
         className="hidden"
         onChange={(e) => {
           if (e.target.files && e.target.files[0]) {
@@ -271,7 +281,7 @@ export const AIClassificationView: React.FC<AIClassificationViewProps> = ({
                 点击上传 或 将病理切片图像拖拽至此处
               </div>
               <p className="text-xs text-[#274667] font-medium tracking-wide">
-                支持.NDPI / .SVS/ .TIFF / .JPG /  .JPEG / .PNG / .BMP格式
+                支持.ndpi/.svs/.tif/.mrxs格式
               </p>
             </div>
 
