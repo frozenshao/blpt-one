@@ -174,7 +174,13 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     const next = current.includes(at)
       ? current.filter(t => t !== at)
       : [...current, at];
-    onFilterChange({ ...filters, animalTypes: next.length > 0 ? next : undefined, page: 1 });
+    const nextIsOnlyMouse = next.length === 1 && next[0] === '小鼠';
+    onFilterChange({
+      ...filters,
+      animalTypes: next.length > 0 ? next : undefined,
+      ...(nextIsOnlyMouse ? {} : { ageRanges: undefined }),
+      page: 1
+    });
   };
 
   // 3. 动物品系切换
@@ -231,6 +237,8 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
       : [...current, range];
     onFilterChange({ ...filters, ageRanges: next.length > 0 ? next : undefined, page: 1 });
   };
+
+  const isOnlyMouseSelected = filters.animalTypes?.length === 1 && filters.animalTypes[0] === '小鼠';
 
   return (
     <div className="w-full bg-white rounded-lg border border-slate-300 shadow-xs overflow-hidden select-none">
@@ -326,7 +334,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
             {(filters.animalTypes?.length || filters.strains?.length) ? (
               <button
                 type="button"
-                onClick={() => onFilterChange({ ...filters, animalTypes: undefined, strains: undefined, page: 1 })}
+                onClick={() => onFilterChange({ ...filters, animalTypes: undefined, strains: undefined, ageRanges: undefined, page: 1 })}
                 title="清空种属/品系筛选"
                 className="hover:text-white"
               >
@@ -719,32 +727,34 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
               </div>
             </div>
 
-            {/* 快捷周龄区间 */}
-            <div className="space-y-1">
-              {ALL_AGE_RANGES.map((range) => {
-                const isChecked = filters.ageRanges?.includes(range) || false;
+            {/* 快捷周龄区间：仅在动物种属仅选择“小鼠”时显示 */}
+            {isOnlyMouseSelected && (
+              <div className="space-y-1">
+                {ALL_AGE_RANGES.map((range) => {
+                  const isChecked = filters.ageRanges?.includes(range) || false;
 
-                return (
-                  <div 
-                    key={range}
-                    onClick={() => handleToggleAgeRange(range)}
-                    className={`flex items-center justify-between px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
-                      isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => {}}
-                        className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
-                      />
-                      <span>{range}</span>
+                  return (
+                    <div 
+                      key={range}
+                      onClick={() => handleToggleAgeRange(range)}
+                      className={`flex items-center justify-between px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
+                        isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                        />
+                        <span>{range}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -22,7 +22,6 @@ import { RESEARCH_PROJECTS } from '../data/toxicologyStatsData';
 import { BackgroundLesionsSection } from './stats/BackgroundLesionsSection';
 import { ProjectLesionsSection } from './stats/ProjectLesionsSection';
 import { CrossStrainSection } from './stats/CrossStrainSection';
-import { TestArticleTargetOrgansSection } from './stats/TestArticleTargetOrgansSection';
 
 interface StatsDashboardProps {
   samples: PathologySample[];
@@ -380,13 +379,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           <ProjectLesionsSection projectId={selectedProjectId} />
         )}
 
-        {/* “项目筛选”选中“全部”时显示“不同动物种属病变对比统计”模块 */}
+        {/* “项目筛选”选中“全部”时显示“不同动物种属背景性病变对比统计”模块 */}
         {selectedProjectId === 'all' && (
           <CrossStrainSection timeRange={timeFilter} />
         )}
-
-        {/* 不同受试物的靶器官分析 */}
-        <TestArticleTargetOrgansSection timeRange={timeFilter} />
       </div>
     </div>
   );

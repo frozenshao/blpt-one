@@ -133,7 +133,17 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                   组织状态
                 </th>
 
-                {/* 12. 采集时间 */}
+                {/* 12. 病变名称 */}
+                <th className="py-3 px-3 min-w-[140px]">
+                  病变名称
+                </th>
+
+                {/* 13. 病变程度 */}
+                <th className="py-3 px-3 min-w-[90px] text-center">
+                  病变程度
+                </th>
+
+                {/* 14. 采集时间 */}
                 <th className="py-3 px-3 min-w-[95px]">
                   采集时间
                 </th>
@@ -143,6 +153,14 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
               {displayedSamples.map((sample) => {
                 const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
                 const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
+                const lesionNameText =
+                  sample.isLesion && sample.lesionName && sample.lesionName !== '正常形态'
+                    ? sample.lesionName
+                    : '-';
+                const scoreMap: Record<number, string> = { 1: '轻微', 2: '轻度', 3: '中度', 4: '重度' };
+                const lesionSeverityText = sample.isLesion
+                  ? (sample.lesionSeverity || scoreMap[sample.structuredDescription?.histopathologyScore] || '-')
+                  : '-';
 
                 return (
                   <tr 
@@ -243,7 +261,17 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                       )}
                     </td>
 
-                    {/* 12. 采集时间 */}
+                    {/* 12. 病变名称 */}
+                    <td className="py-3 px-3 whitespace-nowrap text-xs text-slate-700">
+                      {lesionNameText}
+                    </td>
+
+                    {/* 13. 病变程度 */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap text-xs text-slate-700">
+                      {lesionSeverityText}
+                    </td>
+
+                    {/* 14. 采集时间 */}
                     <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
                       {sample.samplingDate}
                     </td>

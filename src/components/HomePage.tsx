@@ -39,7 +39,7 @@ const SPECIES_PROGRESS_DISTRIBUTION: {
   { name: '斑马鱼', count: 60, color: '#0e7490', maxVal: 1500 },
 ];
 
-// 2. 项目概览数据集 (按照创建时间倒序排列，删除例/张单位，主要脏器显示系统/脏器)
+// 2. 项目概览数据集 (按照创建时间倒序排列，删除例/张单位，展示全部系统/脏器具体值)
 const TOXICOLOGY_PROJECTS = [
   {
     moduleCode: '模块 06',
@@ -49,9 +49,13 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2026-03-15',
     cases: '130',
     slides: '260',
-    lesions: '61',
-    lesionRate: '46.9%',
-    primaryOrgans: ['神经系统/大脑皮质', '神经系统/海马', '神经系统/坐骨神经'],
+    primaryOrgans: [
+      '神经系统/大脑',
+      '神经系统/小脑',
+      '神经系统/脑干',
+      '神经系统/脊髓',
+      '神经系统/坐骨神经',
+    ],
     filterProjectName: '神经毒性试验',
   },
   {
@@ -62,9 +66,12 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2026-02-28',
     cases: '180',
     slides: '360',
-    lesions: '88',
-    lesionRate: '48.9%',
-    primaryOrgans: ['骨骼组织/皮肤', '心血管系统/血管壁', '神经系统/眼黏膜'],
+    primaryOrgans: [
+      '骨骼组织/皮肤及皮下组织',
+      '骨骼组织/骨骼肌(股四头肌)',
+      '呼吸系统/气管',
+      '心血管系统/主动脉',
+    ],
     filterProjectName: '局部刺激试验',
   },
   {
@@ -75,9 +82,13 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2026-01-20',
     cases: '190',
     slides: '380',
-    lesions: '78',
-    lesionRate: '41.1%',
-    primaryOrgans: ['生殖系统/睾丸', '生殖系统/卵巢', '生殖系统/子宫'],
+    primaryOrgans: [
+      '生殖系统/睾丸',
+      '生殖系统/附睾',
+      '生殖系统/卵巢',
+      '生殖系统/子宫',
+      '内分泌系统/垂体',
+    ],
     filterProjectName: '生殖毒性试验',
   },
   {
@@ -88,9 +99,13 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2025-11-12',
     cases: '310',
     slides: '620',
-    lesions: '186',
-    lesionRate: '60.0%',
-    primaryOrgans: ['呼吸系统/肺脏', '泌尿系统/膀胱', '内分泌系统/甲状腺'],
+    primaryOrgans: [
+      '呼吸系统/肺脏',
+      '消化系统/肝脏',
+      '泌尿系统/膀胱',
+      '内分泌系统/甲状腺',
+      '淋巴系统/脾脏',
+    ],
     filterProjectName: '致癌性试验',
   },
   {
@@ -101,9 +116,12 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2025-08-06',
     cases: '240',
     slides: '480',
-    lesions: '142',
-    lesionRate: '59.2%',
-    primaryOrgans: ['消化系统/胃', '消化系统/肝脏', '消化系统/小肠'],
+    primaryOrgans: [
+      '消化系统/肝脏',
+      '消化系统/胃(前胃/腺胃)',
+      '泌尿系统/肾脏',
+      '心血管系统/心脏',
+    ],
     filterProjectName: '急性毒性试验',
   },
   {
@@ -114,9 +132,14 @@ const TOXICOLOGY_PROJECTS = [
     createdAt: '2025-05-18',
     cases: '520',
     slides: '1040',
-    lesions: '295',
-    lesionRate: '56.7%',
-    primaryOrgans: ['消化系统/肝脏', '泌尿系统/肾脏', '心血管系统/心脏'],
+    primaryOrgans: [
+      '消化系统/肝脏',
+      '泌尿系统/肾脏',
+      '心血管系统/心脏',
+      '呼吸系统/肺脏',
+      '淋巴系统/脾脏',
+      '内分泌系统/肾上腺',
+    ],
     filterProjectName: '长期毒性试验',
   },
 ];
@@ -288,29 +311,25 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                 </p>
               </div>
 
-              {/* 4 Metric Stats: 切片数, 动物数, 病变动物数, 病变率 (不含例、张单位) */}
-              <div className="grid grid-cols-4 gap-1.5 text-center py-2">
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
+              {/* 3 Metric Stats: 切片数, 动物数, 脏器数 */}
+              <div className="grid grid-cols-3 gap-2 text-center py-2">
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
                   <div className="text-[10px] text-slate-400">切片数</div>
                   <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.slides}</div>
                 </div>
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
                   <div className="text-[10px] text-slate-400">动物数</div>
                   <div className="text-xs font-bold text-slate-800 font-mono mt-0.5 truncate">{proj.cases}</div>
                 </div>
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
-                  <div className="text-[10px] text-slate-400">病变动物数</div>
-                  <div className="text-xs font-bold text-[#0e3b66] font-mono mt-0.5 truncate">{proj.lesions}</div>
-                </div>
-                <div className="bg-slate-50/70 rounded-md py-1.5 px-0.5 border border-slate-100">
-                  <div className="text-[10px] text-slate-400">病变率</div>
-                  <div className="text-xs font-bold text-rose-600 font-mono mt-0.5 truncate">{proj.lesionRate}</div>
+                <div className="bg-slate-50/70 rounded-md py-1.5 px-1 border border-slate-100">
+                  <div className="text-[10px] text-slate-400">脏器数</div>
+                  <div className="text-xs font-bold text-[#0e3b66] font-mono mt-0.5 truncate">{proj.primaryOrgans.length}</div>
                 </div>
               </div>
 
-              {/* Primary Organs: 显示具体的消化系统及脏器，例如“消化系统/肝脏” */}
-              <div className="flex items-center gap-1.5 mt-3 text-[11px] text-slate-500 flex-wrap">
-                <span className="text-slate-400 text-[10px]">主要脏器:</span>
+              {/* 系统/脏器: 显示全部的系统/脏器具体值 */}
+              <div className="flex items-start gap-1.5 mt-3 text-[11px] text-slate-500 flex-wrap">
+                <span className="text-slate-400 text-[10px] leading-5 shrink-0">系统/脏器:</span>
                 {proj.primaryOrgans.map((organ) => (
                   <span
                     key={organ}

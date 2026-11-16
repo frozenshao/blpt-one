@@ -182,6 +182,7 @@ export interface PathologySample {
   sliceType: SliceType;
   isLesion: boolean; // false = 正常组织, true = 病变组织
   lesionName: string;
+  lesionSeverity?: string;
   lesionDistribution: string;
   species: AnimalSpecies;
   gender: GenderType;

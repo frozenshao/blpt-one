@@ -177,7 +177,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
             <GitCompare className="w-5 h-5" />
           </span>
           <h3 className="text-base font-bold text-[#102a48] tracking-tight">
-            不同动物种属病变对比统计
+            不同动物种属背景性病变对比统计
           </h3>
         </div>
 

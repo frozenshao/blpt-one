@@ -44,6 +44,7 @@ interface RelatedSliceItem {
   system: string;
   isLesion: boolean;
   lesionName: string;
+  lesionSeverity?: string;
   pathologyDiagnosis: string;
   samplingDate: string;
   sliceType: string;
@@ -111,6 +112,7 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       system: '泌尿系统',
       isLesion: true,
       lesionName: '近端肾小管上皮空泡变性',
+      lesionSeverity: '轻度',
       pathologyDiagnosis: '近曲小管轻度脂质沉着伴微量蛋白管型',
       samplingDate: '2026-03-12',
       sliceType: 'HE染色',
@@ -132,7 +134,8 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       organ: '脾脏',
       system: '淋巴系统',
       isLesion: false,
-      lesionName: '正常白髓小体形态',
+      lesionName: '',
+      lesionSeverity: '',
       pathologyDiagnosis: '脾实质小体清晰，生发中心未见萎缩或坏死',
       samplingDate: '2026-03-12',
       sliceType: 'HE染色',
@@ -158,7 +161,8 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       organ: '气管/支气管',
       system: '呼吸系统',
       isLesion: false,
-      lesionName: '黏膜纤毛上皮完整',
+      lesionName: '',
+      lesionSeverity: '',
       pathologyDiagnosis: '支气管假复层纤毛柱状上皮结构完好，未见异型增殖与炎性浸润',
       samplingDate: '2026-02-18',
       sliceType: 'HE染色',
@@ -181,6 +185,7 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       system: '心血管系统',
       isLesion: true,
       lesionName: '心肌间质局灶轻微纤维化',
+      lesionSeverity: '轻微',
       pathologyDiagnosis: '左心室肌层局灶性胶原纤维沉积伴轻度微血管壁增厚',
       samplingDate: '2026-02-18',
       sliceType: 'HE染色',
@@ -207,6 +212,7 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       system: '呼吸系统',
       isLesion: true,
       lesionName: '浸润性腺癌原发瘤灶',
+      lesionSeverity: '重度',
       pathologyDiagnosis: '原发性异型腺管状瘤细胞密集排列，可见间质浸润与纤维反应',
       samplingDate: '2026-03-08',
       sliceType: 'HE染色',
@@ -228,7 +234,8 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       organ: '淋巴结',
       system: '淋巴系统',
       isLesion: false,
-      lesionName: '反应性增生',
+      lesionName: '',
+      lesionSeverity: '',
       pathologyDiagnosis: '淋巴窦扩张伴巨噬细胞反应，未见转移瘤细胞巢累及',
       samplingDate: '2026-03-08',
       sliceType: 'HE染色',
@@ -287,6 +294,14 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
   const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
   const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
+  const lesionNameText =
+    sample.isLesion && sample.lesionName && sample.lesionName !== '正常形态'
+      ? sample.lesionName
+      : '-';
+  const scoreMap: Record<number, string> = { 1: '轻微', 2: '轻度', 3: '中度', 4: '重度' };
+  const lesionSeverityText = sample.isLesion
+    ? (sample.lesionSeverity || scoreMap[sample.structuredDescription?.histopathologyScore] || '-')
+    : '-';
 
   // 优先匹配当前样本是否有配置的专属关联切片数据
   const specificSlices = SPECIFIC_RELATED_SLICES[displayCode] || SPECIFIC_RELATED_SLICES[sample.sampleCode];
@@ -347,6 +362,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
         system: item.system as any,
         isLesion: item.isLesion,
         lesionName: item.lesionName,
+        lesionSeverity: item.lesionSeverity || '',
         pathologyDiagnosis: item.pathologyDiagnosis,
         samplingDate: item.samplingDate,
         sliceType: item.sliceType as any,
@@ -661,7 +677,19 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                   </span>
                 </div>
 
-                {/* 10) 采集时间 */}
+                {/* 10) 病变名称 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">病变名称</span>
+                  <span className="font-medium text-slate-800 text-right">{lesionNameText}</span>
+                </div>
+
+                {/* 11) 病变程度 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">病变程度</span>
+                  <span className="font-medium text-slate-800 text-right">{lesionSeverityText}</span>
+                </div>
+
+                {/* 12) 采集时间 */}
                 <div className="flex items-center justify-between p-2.5">
                   <span className="font-semibold text-slate-500 w-28 shrink-0">采集时间</span>
                   <span className="font-mono text-slate-700 text-right">{sample.samplingDate}</span>

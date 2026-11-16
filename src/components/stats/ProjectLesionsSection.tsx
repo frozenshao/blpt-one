@@ -144,11 +144,11 @@ export const ProjectLesionsSection: React.FC<ProjectLesionsSectionProps> = ({ pr
 
           <div className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48]">
             <Layers className="w-3.5 h-3.5 text-[#18446b]/60" />
-            <span className="font-medium text-[#102a48]/70">剂量组:</span>
+            <span className="font-medium text-[#102a48]/70">组别:</span>
             <select
               value={selectedCohort}
               onChange={(e) => setSelectedCohort(e.target.value)}
-              aria-label="筛选试验剂量组"
+              aria-label="筛选组别"
               className="bg-transparent font-medium text-[#102a48] focus:outline-hidden cursor-pointer"
             >
               {cohortOptions.map(c => (

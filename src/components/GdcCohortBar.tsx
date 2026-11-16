@@ -117,7 +117,13 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
         label: `动物种属: ${at}`,
         clear: () => {
           const next = filters.animalTypes!.filter(t => t !== at);
-          onFilterChange({ ...filters, animalTypes: next.length > 0 ? next : undefined, page: 1 });
+          const nextIsOnlyMouse = next.length === 1 && next[0] === '小鼠';
+          onFilterChange({
+            ...filters,
+            animalTypes: next.length > 0 ? next : undefined,
+            ...(nextIsOnlyMouse ? {} : { ageRanges: undefined }),
+            page: 1
+          });
         }
       });
     });
