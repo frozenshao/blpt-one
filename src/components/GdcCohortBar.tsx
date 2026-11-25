@@ -35,7 +35,7 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
   if (filters.projectNames && filters.projectNames.length > 0) {
     filters.projectNames.forEach(p => {
       activeFilters.push({
-        label: `项目: ${p}`,
+        label: `研究类型: ${p}`,
         clear: () => {
           const next = filters.projectNames!.filter(item => item !== p);
           onFilterChange({
@@ -49,7 +49,7 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
     });
   } else if (filters.projectName && filters.projectName !== '全部') {
     activeFilters.push({
-      label: `项目: ${filters.projectName}`,
+      label: `研究类型: ${filters.projectName}`,
       clear: () => onFilterChange({ ...filters, projectName: undefined, page: 1 })
     });
   }
@@ -69,7 +69,7 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
   if (filters.organs && filters.organs.length > 0) {
     filters.organs.forEach(org => {
       activeFilters.push({
-        label: `脏器/腺体: ${org}`,
+        label: `器官/组织: ${org}`,
         clear: () => {
           const next = filters.organs!.filter(o => o !== org);
           onFilterChange({ ...filters, organs: next.length > 0 ? next : undefined, page: 1 });
@@ -78,16 +78,48 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
     });
   }
 
-  if (filters.testArticleCategory && filters.testArticleCategory !== '全部') {
+  if (filters.formulationCategories && filters.formulationCategories.length > 0) {
+    filters.formulationCategories.forEach(l1 => {
+      activeFilters.push({
+        label: `给药制剂: ${l1}`,
+        clear: () => {
+          const next = filters.formulationCategories!.filter(item => item !== l1);
+          onFilterChange({ ...filters, formulationCategories: next.length > 0 ? next : undefined, page: 1 });
+        }
+      });
+    });
+  }
+
+  if (filters.testArticleCategories && filters.testArticleCategories.length > 0) {
+    filters.testArticleCategories.forEach(l2 => {
+      activeFilters.push({
+        label: `给药制剂: ${l2}`,
+        clear: () => {
+          const next = filters.testArticleCategories!.filter(item => item !== l2);
+          onFilterChange({ ...filters, testArticleCategories: next.length > 0 ? next : undefined, page: 1 });
+        }
+      });
+    });
+  } else if (filters.testArticleCategory && filters.testArticleCategory !== '全部') {
     activeFilters.push({
-      label: `受试物: ${filters.testArticleCategory}`,
+      label: `给药制剂: ${filters.testArticleCategory}`,
       clear: () => onFilterChange({ ...filters, testArticleCategory: undefined, page: 1 })
     });
   }
 
-  if (filters.testArticleSubCategory && filters.testArticleSubCategory !== '全部') {
+  if (filters.testArticleSubCategories && filters.testArticleSubCategories.length > 0) {
+    filters.testArticleSubCategories.forEach(l3 => {
+      activeFilters.push({
+        label: `给药制剂: ${l3}`,
+        clear: () => {
+          const next = filters.testArticleSubCategories!.filter(item => item !== l3);
+          onFilterChange({ ...filters, testArticleSubCategories: next.length > 0 ? next : undefined, page: 1 });
+        }
+      });
+    });
+  } else if (filters.testArticleSubCategory && filters.testArticleSubCategory !== '全部') {
     activeFilters.push({
-      label: `受试物亚类: ${filters.testArticleSubCategory}`,
+      label: `给药制剂: ${filters.testArticleSubCategory}`,
       clear: () => onFilterChange({ ...filters, testArticleSubCategory: undefined, page: 1 })
     });
   }
@@ -117,11 +149,11 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
         label: `动物种属: ${at}`,
         clear: () => {
           const next = filters.animalTypes!.filter(t => t !== at);
-          const nextIsOnlyMouse = next.length === 1 && next[0] === '小鼠';
+          const nextAnimalTypes = next.length > 0 ? next : undefined;
           onFilterChange({
             ...filters,
-            animalTypes: next.length > 0 ? next : undefined,
-            ...(nextIsOnlyMouse ? {} : { ageRanges: undefined }),
+            animalTypes: nextAnimalTypes,
+            ageRanges: undefined,
             page: 1
           });
         }
@@ -135,7 +167,12 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
         label: `动物品系: ${st}`,
         clear: () => {
           const next = filters.strains!.filter(s => s !== st);
-          onFilterChange({ ...filters, strains: next.length > 0 ? next : undefined, page: 1 });
+          onFilterChange({
+            ...filters,
+            strains: next.length > 0 ? next : undefined,
+            ageRanges: undefined,
+            page: 1
+          });
         }
       });
     });
@@ -156,7 +193,7 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
   if (filters.ageRanges && filters.ageRanges.length > 0) {
     filters.ageRanges.forEach(r => {
       activeFilters.push({
-        label: `周龄: ${r}`,
+        label: `年龄: ${r}`,
         clear: () => {
           const next = filters.ageRanges!.filter(item => item !== r);
           onFilterChange({ ...filters, ageRanges: next.length > 0 ? next : undefined, page: 1 });
@@ -165,20 +202,45 @@ export const GdcCohortBar: React.FC<GdcCohortBarProps> = ({
     });
   }
 
-  // 自定义周龄范围标签
+  // 自定义年龄范围标签
   if (filters.ageMin !== undefined || filters.ageMax !== undefined) {
-    let customAgeLabel = '周龄范围: ';
+    const unitText = filters.ageUnit === 'month' ? '月' : filters.ageUnit === 'year' ? '年' : '周';
+    let customAgeLabel = '年龄范围: ';
     if (filters.ageMin !== undefined && filters.ageMax !== undefined) {
-      customAgeLabel = `周龄: ${filters.ageMin} - ${filters.ageMax}周`;
+      customAgeLabel = `年龄: ${filters.ageMin} - ${filters.ageMax}${unitText}`;
     } else if (filters.ageMin !== undefined) {
-      customAgeLabel = `周龄: ≥ ${filters.ageMin}周`;
+      customAgeLabel = `年龄: ≥ ${filters.ageMin}${unitText}`;
     } else if (filters.ageMax !== undefined) {
-      customAgeLabel = `周龄: ≤ ${filters.ageMax}周`;
+      customAgeLabel = `年龄: ≤ ${filters.ageMax}${unitText}`;
     }
 
     activeFilters.push({
       label: customAgeLabel,
       clear: () => onFilterChange({ ...filters, ageMin: undefined, ageMax: undefined, page: 1 })
+    });
+  }
+
+  if (filters.lesionSeverities && filters.lesionSeverities.length > 0) {
+    filters.lesionSeverities.forEach(sev => {
+      activeFilters.push({
+        label: `病变程度: ${sev}`,
+        clear: () => {
+          const next = filters.lesionSeverities!.filter(item => item !== sev);
+          onFilterChange({ ...filters, lesionSeverities: next.length > 0 ? next : undefined, page: 1 });
+        }
+      });
+    });
+  }
+
+  if (filters.lesionDistributions && filters.lesionDistributions.length > 0) {
+    filters.lesionDistributions.forEach(dist => {
+      activeFilters.push({
+        label: `分布特征: ${dist}`,
+        clear: () => {
+          const next = filters.lesionDistributions!.filter(item => item !== dist);
+          onFilterChange({ ...filters, lesionDistributions: next.length > 0 ? next : undefined, page: 1 });
+        }
+      });
     });
   }
 

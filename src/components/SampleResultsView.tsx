@@ -8,6 +8,14 @@ import {
   Tag
 } from 'lucide-react';
 import { PathologySample } from '../types/pathology';
+import {
+  formatFormulationDisplay,
+  formatGenderDisplay,
+  formatLesionDiagnosis,
+  formatLesionSeverity,
+  formatSampleYearMonth,
+  formatSystemOrganDisplay
+} from '../utils/sampleFormatters';
 
 interface SampleResultsViewProps {
   samples: PathologySample[];
@@ -38,14 +46,25 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
   // Filter local samples if local search typed
   const displayedSamples = localSearch.trim() === ''
     ? samples
-    : samples.filter(s => 
-        s.sampleCode.toLowerCase().includes(localSearch.toLowerCase()) ||
-        s.organ.toLowerCase().includes(localSearch.toLowerCase()) ||
-        (s.projectName && s.projectName.toLowerCase().includes(localSearch.toLowerCase())) ||
-        (s.testArticle && s.testArticle.toLowerCase().includes(localSearch.toLowerCase())) ||
-        (s.pathologyDiagnosis && s.pathologyDiagnosis.toLowerCase().includes(localSearch.toLowerCase())) ||
-        (s.strain && s.strain.toLowerCase().includes(localSearch.toLowerCase()))
-      );
+    : samples.filter(s => {
+        const q = localSearch.toLowerCase();
+        const sysOrgText = formatSystemOrganDisplay(s);
+        const formulationText = formatFormulationDisplay(s);
+        return (
+          s.sampleCode.toLowerCase().includes(q) ||
+          (s.animalId && s.animalId.toLowerCase().includes(q)) ||
+          sysOrgText.toLowerCase().includes(q) ||
+          (s.projectName && s.projectName.toLowerCase().includes(q)) ||
+          formulationText.toLowerCase().includes(q) ||
+          (s.testArticle && s.testArticle.toLowerCase().includes(q)) ||
+          (s.experimentGroup && s.experimentGroup.toLowerCase().includes(q)) ||
+          (s.lesionName && s.lesionName.toLowerCase().includes(q)) ||
+          (s.lesionSeverity && s.lesionSeverity.toLowerCase().includes(q)) ||
+          (s.strain && s.strain.toLowerCase().includes(q))
+        );
+      });
+
+  const displayTotalCount = localSearch.trim() === '' ? total : displayedSamples.length;
 
   return (
     <div className="w-full bg-white rounded-lg border border-slate-300 shadow-xs overflow-hidden select-none">
@@ -58,7 +77,7 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
             type="text"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="快速搜索切片编号、诊断"
+            placeholder="快速搜索切片编号、动物号、病变诊断"
             className="pl-8 pr-3 py-1.5 rounded text-xs border border-slate-300 focus:outline-none focus:border-[#18446b] w-56 sm:w-72 bg-slate-50 focus:bg-white transition-all"
           />
         </div>
@@ -78,18 +97,18 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
           <p className="text-sm font-semibold text-slate-800">未找到符合当前筛选条件的病理数据</p>
         </div>
       ) : (
-        /* 数据表格视图 - 严格按照列顺序，无排序箭头，切片编号纯文本 */
+        /* 数据表格视图 */
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-700 border-collapse">
             <thead className="bg-[#f8fafc] text-slate-700 border-b border-slate-300 font-bold tracking-tight whitespace-nowrap">
               <tr>
-                {/* 1. 项目名称 */}
-                <th className="py-3 px-3 min-w-[120px]">
-                  项目名称
+                {/* 1. 研究类型 */}
+                <th className="py-3 px-3 min-w-[110px]">
+                  研究类型
                 </th>
 
                 {/* 2. 切片编号 */}
-                <th className="py-3 px-3 min-w-[200px]">
+                <th className="py-3 px-3 min-w-[190px]">
                   切片编号
                 </th>
 
@@ -98,69 +117,67 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                   动物种属/品系
                 </th>
 
-                {/* 5. 系统/脏器类型 (显示在动物品系列后) */}
-                <th className="py-3 px-3 min-w-[130px]">
+                {/* 4. 系统/脏器类型 */}
+                <th className="py-3 px-3 min-w-[180px]">
                   系统/脏器类型
                 </th>
 
-                {/* 6. 受试物 (显示在系统/脏器类型列后) */}
-                <th className="py-3 px-3 min-w-[130px]">
-                  受试物
-                </th>
-
-                {/* 7. 组别 */}
+                {/* 5. 给药制剂 */}
                 <th className="py-3 px-3 min-w-[150px]">
-                  组别
+                  给药制剂
                 </th>
 
-                {/* 8. 性别 (拆分为独立列) */}
+                {/* 6. 实验组别 */}
+                <th className="py-3 px-3 min-w-[110px]">
+                  实验组别
+                </th>
+
+                {/* 7. 动物号 */}
+                <th className="py-3 px-3 min-w-[85px] text-center">
+                  动物号
+                </th>
+
+                {/* 8. 性别 */}
                 <th className="py-3 px-2 min-w-[65px] text-center">
                   性别
                 </th>
 
-                {/* 9. 周龄 (拆分为独立列) */}
-                <th className="py-3 px-2 min-w-[65px] text-center">
-                  周龄
+                {/* 9. 年龄 */}
+                <th className="py-3 px-2 min-w-[85px] text-center">
+                  年龄
                 </th>
 
-                {/* 10. 病理诊断 (移动至采集时间列前) */}
-                <th className="py-3 px-3 min-w-[240px] max-w-[320px]">
-                  病理诊断
-                </th>
-
-                {/* 11. 组织状态 (移动至病理诊断列后) */}
+                {/* 10. 组织状态 */}
                 <th className="py-3 px-3 min-w-[95px] text-center">
                   组织状态
                 </th>
 
-                {/* 12. 病变名称 */}
+                {/* 11. 病变诊断 */}
                 <th className="py-3 px-3 min-w-[140px]">
-                  病变名称
+                  病变诊断
                 </th>
 
-                {/* 13. 病变程度 */}
-                <th className="py-3 px-3 min-w-[90px] text-center">
+                {/* 12. 病变程度 */}
+                <th className="py-3 px-3 min-w-[115px] text-center">
                   病变程度
                 </th>
 
-                {/* 14. 采集时间 */}
+                {/* 13. 创建时间 */}
                 <th className="py-3 px-3 min-w-[95px]">
-                  采集时间
+                  创建时间
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {displayedSamples.map((sample) => {
                 const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
-                const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
-                const lesionNameText =
-                  sample.isLesion && sample.lesionName && sample.lesionName !== '正常形态'
-                    ? sample.lesionName
-                    : '-';
-                const scoreMap: Record<number, string> = { 1: '轻微', 2: '轻度', 3: '中度', 4: '重度' };
-                const lesionSeverityText = sample.isLesion
-                  ? (sample.lesionSeverity || scoreMap[sample.structuredDescription?.histopathologyScore] || '-')
-                  : '-';
+                const genderText = formatGenderDisplay(sample.gender);
+                const systemOrganText = formatSystemOrganDisplay(sample);
+                const formulationText = formatFormulationDisplay(sample);
+                const ageText = sample.ageDisplay || `${sample.ageWeeks}周龄`;
+                const lesionNameText = formatLesionDiagnosis(sample);
+                const lesionSeverityText = formatLesionSeverity(sample);
+                const createdAtText = formatSampleYearMonth(sample.samplingDate);
 
                 return (
                   <tr 
@@ -169,19 +186,19 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                     title="点击查看病理切片详细信息"
                     className="hover:bg-sky-50/50 transition-colors cursor-pointer bg-white"
                   >
-                    {/* 1. 项目名称 */}
+                    {/* 1. 研究类型 */}
                     <td className="py-3 px-3 whitespace-nowrap">
                       <span className="font-semibold text-slate-800 text-xs">
-                        {sample.projectName || '长期毒性试验'}
+                        {sample.projectName || '重复给药毒性试验'}
                       </span>
                     </td>
 
-                    {/* 2. 切片编号 (不显示任何图标和原点，纯文本) */}
+                    {/* 2. 切片编号 */}
                     <td className="py-3 px-3 whitespace-nowrap font-mono text-xs font-bold text-[#18446b]">
                       {displayCode}
                     </td>
 
-                    {/* 3. 动物种属/品系 (动物种属在第一行，动物品系在第二行) */}
+                    {/* 3. 动物种属/品系 */}
                     <td className="py-3 px-3 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-800 text-xs leading-tight">
@@ -193,60 +210,43 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                       </div>
                     </td>
 
-                    {/* 5. 系统/脏器类型 (系统名显示在第一行，脏器显示在第二行，不显示蓝色点) */}
+                    {/* 4. 系统/脏器类型 (拼接显示，多个脏器用逗号拼接) */}
+                    <td className="py-3 px-3 min-w-[180px] max-w-[260px]">
+                      <span className="text-xs font-medium text-slate-800 leading-relaxed" title={systemOrganText}>
+                        {systemOrganText}
+                      </span>
+                    </td>
+
+                    {/* 5. 给药制剂 */}
                     <td className="py-3 px-3 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-xs leading-tight">
-                          {sample.system || '消化系统'}
-                        </span>
-                        <span className="text-[11px] text-slate-500 leading-tight mt-0.5">
-                          {sample.organ}
-                        </span>
-                      </div>
+                      <span className="font-medium text-slate-800 text-xs">
+                        {formulationText}
+                      </span>
                     </td>
 
-                    {/* 6. 受试物 ("/"前的数据显示在第一行，"/"后的数据显示在第二行) */}
+                    {/* 6. 实验组别 */}
                     <td className="py-3 px-3 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 text-xs leading-tight">
-                          {sample.testArticleCategory || '药品'}
-                        </span>
-                        {sample.testArticleSubCategory ? (
-                          <span className="text-[11px] text-slate-500 leading-tight mt-0.5">
-                            {sample.testArticleSubCategory}
-                          </span>
-                        ) : null}
-                      </div>
+                      <span className="font-semibold text-slate-800 text-xs" title={sample.experimentGroup}>
+                        {sample.experimentGroup || '高剂量组'}
+                      </span>
                     </td>
 
-                    {/* 7. 组别 (仅显示现有第一行数据) */}
-                    <td className="py-3 px-3 min-w-[150px]">
-                      <div className="font-semibold text-slate-800 text-xs truncate max-w-[200px]" title={sample.experimentGroup}>
-                        {sample.experimentGroup || '高剂量给药组'}
-                      </div>
+                    {/* 7. 动物号 */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap font-mono text-xs font-semibold text-slate-700">
+                      {sample.animalId || '-'}
                     </td>
 
-                    {/* 8. 性别 (独立列) */}
+                    {/* 8. 性别 */}
                     <td className="py-3 px-2 text-center whitespace-nowrap text-xs text-slate-700">
                       {genderText}
                     </td>
 
-                    {/* 9. 周龄 (独立列) */}
+                    {/* 9. 年龄 */}
                     <td className="py-3 px-2 text-center whitespace-nowrap text-xs font-mono text-slate-700">
-                      {sample.ageWeeks}周
+                      {ageText}
                     </td>
 
-                    {/* 10. 病理诊断 */}
-                    <td className="py-3 px-3 min-w-[240px] max-w-[320px]">
-                      <div 
-                        className="text-[11px] text-slate-800 line-clamp-2 leading-relaxed" 
-                        title={sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis}
-                      >
-                        {sample.pathologyDiagnosis || sample.structuredDescription?.clinicalDiagnosis || '未见明显组织学病变或细胞异型性'}
-                      </div>
-                    </td>
-
-                    {/* 11. 组织状态 (在病理诊断后) */}
+                    {/* 10. 组织状态 */}
                     <td className="py-3 px-3 text-center whitespace-nowrap">
                       {sample.isLesion ? (
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 font-semibold">
@@ -261,19 +261,19 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
                       )}
                     </td>
 
-                    {/* 12. 病变名称 */}
+                    {/* 11. 病变诊断 */}
                     <td className="py-3 px-3 whitespace-nowrap text-xs text-slate-700">
                       {lesionNameText}
                     </td>
 
-                    {/* 13. 病变程度 */}
+                    {/* 12. 病变程度 */}
                     <td className="py-3 px-3 text-center whitespace-nowrap text-xs text-slate-700">
                       {lesionSeverityText}
                     </td>
 
-                    {/* 14. 采集时间 */}
+                    {/* 13. 创建时间 */}
                     <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-slate-600">
-                      {sample.samplingDate}
+                      {createdAtText}
                     </td>
                   </tr>
                 );
@@ -283,24 +283,30 @@ export const SampleResultsView: React.FC<SampleResultsViewProps> = ({
         </div>
       )}
 
-      {/* 底部翻页控制栏 (不显示任何数字与样本数计数) */}
-      <div className="p-3 sm:px-4 border-t border-slate-200 flex items-center justify-end bg-slate-50/60">
-        <div className="flex items-center gap-1">
+      {/* 底部翻页控制栏：与用户管理页面翻页样式一致 */}
+      <div className="px-4 py-3 border-t border-[#bcd7ee]/60 bg-slate-50/70 flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-600">
+          共{displayTotalCount}条
+        </span>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
             title="上一页"
-            className="p-1.5 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
+          <span className="text-xs font-mono text-slate-600 px-1">
+            {page} / {Math.max(1, totalPages)}
+          </span>
           <button
             type="button"
-            disabled={page >= totalPages}
+            disabled={page >= Math.max(1, totalPages)}
             onClick={() => onPageChange(page + 1)}
             title="下一页"
-            className="p-1.5 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>

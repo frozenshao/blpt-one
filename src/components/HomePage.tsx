@@ -7,6 +7,7 @@ import {
   Dna
 } from 'lucide-react';
 import { AnimalSpecies } from '../types/pathology';
+import { formatSampleYearMonth } from '../utils/sampleFormatters';
 
 interface HomePageProps {
   onNavigate: (
@@ -89,7 +90,7 @@ const TOXICOLOGY_PROJECTS = [
       '生殖系统/子宫',
       '内分泌系统/垂体',
     ],
-    filterProjectName: '生殖毒性试验',
+    filterProjectName: '生殖与发育毒性试验',
   },
   {
     moduleCode: '模块 03',
@@ -140,7 +141,7 @@ const TOXICOLOGY_PROJECTS = [
       '淋巴系统/脾脏',
       '内分泌系统/肾上腺',
     ],
-    filterProjectName: '长期毒性试验',
+    filterProjectName: '重复给药毒性试验',
   },
 ];
 
@@ -277,12 +278,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* 2. Middle Section: 项目概览 */}
+      {/* 2. Middle Section: 研究概览 */}
       <section className="bg-gradient-to-r from-[#453468] via-[#4d3b72] to-[#3f2f5f] rounded-2xl p-6 sm:p-7 text-white shadow-sm space-y-5">
         {/* Left-aligned Heading */}
         <div className="text-left">
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            项目概览
+            研究概览
           </h2>
         </div>
 
@@ -302,7 +303,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
                     {proj.title}
                   </div>
                   <div className="text-[11px] font-mono text-slate-400 shrink-0">
-                    创建时间: {proj.createdAt}
+                    最新切片时间: {formatSampleYearMonth(proj.createdAt)}
                   </div>
                 </div>
                 {/* Project Intro */}

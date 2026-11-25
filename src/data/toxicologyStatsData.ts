@@ -162,6 +162,7 @@ export interface ProjectLesionStatItem {
     grade2Mild: number;
     grade3Moderate: number;
     grade4Marked: number;
+    grade5Severe?: number;
   };
   pathologyAssessment: string;
 }
@@ -257,7 +258,7 @@ export const PROJECT_TAG_LESIONS_DATA: Record<string, ProjectLesionStatItem[]> =
       totalAnimals: 20,
       affectedAnimals: 15,
       incidenceRate: 75.0,
-      severityDistribution: { grade1Minimal: 1, grade2Mild: 4, grade3Moderate: 8, grade4Marked: 2 },
+      severityDistribution: { grade1Minimal: 1, grade2Mild: 4, grade3Moderate: 7, grade4Marked: 2, grade5Severe: 1 },
       pathologyAssessment: '弥漫性混合型脂肪变性伴肝索挤压，为明确的给药蓄积毒性靶器官改变。'
     },
     {
@@ -469,7 +470,7 @@ export const PROJECT_TAG_LESIONS_DATA: Record<string, ProjectLesionStatItem[]> =
       totalAnimals: 20,
       affectedAnimals: 9,
       incidenceRate: 45.0,
-      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 4, grade4Marked: 1 },
+      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 3, grade4Marked: 1, grade5Severe: 1 },
       pathologyAssessment: '局灶性及融合性肝实质坏死，提示给药毒性损伤。'
     },
     {
@@ -575,7 +576,7 @@ export const PROJECT_TAG_LESIONS_DATA: Record<string, ProjectLesionStatItem[]> =
       totalAnimals: 20,
       affectedAnimals: 11,
       incidenceRate: 55.0,
-      severityDistribution: { grade1Minimal: 2, grade2Mild: 4, grade3Moderate: 4, grade4Marked: 1 },
+      severityDistribution: { grade1Minimal: 2, grade2Mild: 4, grade3Moderate: 3, grade4Marked: 1, grade5Severe: 1 },
       pathologyAssessment: '肾小管上皮广泛损伤后代偿性再生嗜碱化，基底膜多发褶皱。'
     },
     {
@@ -655,7 +656,7 @@ export const PROJECT_TAG_LESIONS_DATA: Record<string, ProjectLesionStatItem[]> =
       totalAnimals: 15,
       affectedAnimals: 10,
       incidenceRate: 66.7,
-      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 5, grade4Marked: 1 },
+      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 4, grade4Marked: 1, grade5Severe: 1 },
       pathologyAssessment: '高浓度排泄导致肾小管上皮急性凝固坏死及刷状缘脱落。'
     },
     {
@@ -709,7 +710,7 @@ export const PROJECT_TAG_LESIONS_DATA: Record<string, ProjectLesionStatItem[]> =
       totalAnimals: 25,
       affectedAnimals: 8,
       incidenceRate: 32.0,
-      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 3, grade4Marked: 1 },
+      severityDistribution: { grade1Minimal: 1, grade2Mild: 3, grade3Moderate: 2, grade4Marked: 1, grade5Severe: 1 },
       pathologyAssessment: '肺泡上皮细胞呈乳头状或管状异型增生，界限清楚，未见浸润性生长。'
     },
     {

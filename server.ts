@@ -52,8 +52,10 @@ app.post('/api/pathology/search', (req, res) => {
         (item.projectName && item.projectName.toLowerCase().includes(q)) ||
         (item.experimentGroup && item.experimentGroup.toLowerCase().includes(q)) ||
         (item.testArticle && item.testArticle.toLowerCase().includes(q)) ||
+        (item.formulation && item.formulation.toLowerCase().includes(q)) ||
         (item.pathologyDiagnosis && item.pathologyDiagnosis.toLowerCase().includes(q)) ||
         item.organ.toLowerCase().includes(q) ||
+        (item.systemOrgans && item.systemOrgans.some(so => so.system.toLowerCase().includes(q) || so.organ.toLowerCase().includes(q))) ||
         item.lesionName.toLowerCase().includes(q) ||
         item.species.toLowerCase().includes(q) ||
         item.collectorName.toLowerCase().includes(q) ||
@@ -64,37 +66,101 @@ app.post('/api/pathology/search', (req, res) => {
       );
     }
 
-    // System filter (multi-select)
+    // System filter (multi-select across 12 systems)
+    const systemMatches = (sampleSys: string | undefined, filterSys: string) => {
+      if (!sampleSys) return false;
+      if (sampleSys === filterSys || sampleSys.includes(filterSys)) return true;
+      if ((filterSys === '雄性生殖系统' || filterSys === '雌性生殖系统') && sampleSys === '生殖系统') return true;
+      if (filterSys === '免疫系统' && (sampleSys.includes('淋巴') || sampleSys.includes('免疫'))) return true;
+      if (filterSys === '肌肉骨骼系统' && sampleSys.includes('骨骼')) return true;
+      return false;
+    };
     if (params.systems && params.systems.length > 0) {
-      filtered = filtered.filter(item => item.system && params.systems!.includes(item.system));
+      filtered = filtered.filter(item =>
+        params.systems!.some(sys => systemMatches(item.system, sys)) ||
+        (item.systemOrgans && item.systemOrgans.some(so => params.systems!.some(sys => systemMatches(so.system, sys))))
+      );
     }
 
-    // Organ / Gland filter (multi-select)
+    // Organ / Tissue filter (multi-select with safe synonym mapping)
+    const ORGAN_SYNONYMS: Record<string, string[]> = {
+      '肝': ['肝脏'],
+      '胃': ['胃(前胃/腺胃)'],
+      '空肠': ['空肠/回肠'],
+      '回肠': ['空肠/回肠'],
+      '结肠': ['结肠/直肠'],
+      '直肠': ['结肠/直肠'],
+      '肺': ['肺脏'],
+      '肾': ['肾脏'],
+      '脾': ['脾脏'],
+      '脑': ['大脑', '小脑', '脑干'],
+      '骨': ['股骨/关节'],
+      '关节': ['股骨/关节'],
+      '骨髓': ['骨髓(胸骨/股骨)'],
+      '骨骼肌': ['骨骼肌(股四头肌)'],
+      '唾液腺': ['唾液腺(颌下腺/腮腺)'],
+      '哈氏腺': ['哈氏腺(Harderian gland)'],
+      '鼻腔': ['鼻腔/鼻甲'],
+      '周围神经': ['坐骨神经'],
+      '精囊': ['精囊腺'],
+      '皮肤': ['皮肤及皮下组织'],
+      '皮下组织': ['皮肤及皮下组织']
+    };
+    const organMatches = (sampleOrgan: string, filterOrgan: string) => {
+      if (sampleOrgan === filterOrgan) return true;
+      const syns = ORGAN_SYNONYMS[filterOrgan];
+      return Boolean(syns && syns.some(syn => sampleOrgan === syn || sampleOrgan.includes(syn)));
+    };
     if (params.organs && params.organs.length > 0) {
-      filtered = filtered.filter(item => 
-        params.organs!.some(org => 
-          item.organ === org || 
-          org.includes(item.organ) || 
-          item.organ.includes(org)
+      filtered = filtered.filter(item =>
+        params.organs!.some(org =>
+          organMatches(item.organ, org) ||
+          (item.systemOrgans && item.systemOrgans.some(so => organMatches(so.organ, org)))
         )
       );
     }
 
-    // Project filter (7 project categories: '长期毒性试验', '急性毒性试验', '致癌性试验', '生殖毒性试验', '局部刺激试验', '神经毒性试验', '其他')
+    // 研究类型筛选 (神经毒性试验、局部刺激试验、生殖与发育毒性试验、致癌性试验、急性毒性试验、重复给药毒性试验)
+    const normalizeProject = (p?: string) => {
+      if (!p) return '';
+      if (p === '长期毒性试验') return '重复给药毒性试验';
+      if (p === '生殖毒性试验') return '生殖与发育毒性试验';
+      return p;
+    };
     if (params.projectNames && params.projectNames.length > 0) {
-      filtered = filtered.filter(item => item.projectName && params.projectNames!.includes(item.projectName));
+      filtered = filtered.filter(item =>
+        item.projectName && params.projectNames!.some(p => normalizeProject(item.projectName) === normalizeProject(p))
+      );
     } else if (params.projectName && params.projectName !== '全部') {
-      filtered = filtered.filter(item => item.projectName === params.projectName);
+      filtered = filtered.filter(item => normalizeProject(item.projectName) === normalizeProject(params.projectName));
     }
 
-    // Test Article Category filter ('药品' | '医疗器械' | '化妆品')
-    if (params.testArticleCategory && params.testArticleCategory !== '全部') {
-      filtered = filtered.filter(item => item.testArticleCategory === params.testArticleCategory);
-    }
-
-    // Test Article SubCategory filter (e.g. '抗体', '小分子化药', etc.)
-    if (params.testArticleSubCategory && params.testArticleSubCategory !== '全部') {
-      filtered = filtered.filter(item => item.testArticleSubCategory === params.testArticleSubCategory);
+    // 给药制剂三级筛选 (一级栏目 -> 二级类别 -> 三级选项)
+    const selectedL1 = params.formulationCategories || [];
+    const selectedL2 = params.testArticleCategories?.length
+      ? params.testArticleCategories
+      : (params.testArticleCategory && params.testArticleCategory !== '全部' ? [params.testArticleCategory] : []);
+    const selectedL3 = params.testArticleSubCategories?.length
+      ? params.testArticleSubCategories
+      : (params.testArticleSubCategory && params.testArticleSubCategory !== '全部' ? [params.testArticleSubCategory] : []);
+    if (selectedL1.length > 0 || selectedL2.length > 0 || selectedL3.length > 0) {
+      filtered = filtered.filter(item => {
+        const itemL1 = item.formulationCategory || (
+          item.formulation === '溶媒' || item.testArticleCategory === '溶媒'
+            ? '溶媒'
+            : item.formulation === '空包LNP' || item.testArticleCategory === '空包LNP'
+            ? '佐剂'
+            : '受试物'
+        );
+        const itemL2 = item.testArticleCategory || (
+          item.formulation === '溶媒' ? '溶媒' : item.formulation === '空包LNP' ? '空包LNP' : ''
+        );
+        const itemL3 = item.testArticleSubCategory || '';
+        const matchL1 = selectedL1.length > 0 && selectedL1.includes(itemL1);
+        const matchL2 = selectedL2.length > 0 && selectedL2.includes(itemL2);
+        const matchL3 = selectedL3.length > 0 && selectedL3.includes(itemL3);
+        return matchL1 || matchL2 || matchL3;
+      });
     }
 
     // Slice Type filter (multi-select)
@@ -116,23 +182,27 @@ app.post('/api/pathology/search', (req, res) => {
       filtered = filtered.filter(item => params.species!.includes(item.species));
     }
 
-    // 动物种属筛选 (小鼠, 大鼠, 食蟹猴, 比格犬, 人源异种移植模型(PDX), 斑马鱼)
+    // 动物种属筛选 (小鼠, 大鼠, 猴, 犬, 兔, 猪（小型猪）, 豚鼠)
     if (params.animalTypes && params.animalTypes.length > 0) {
       filtered = filtered.filter(item => {
         return params.animalTypes!.some(at => {
           if (at === '小鼠') return item.species.includes('小鼠');
           if (at === '大鼠') return item.species.includes('大鼠');
-          return item.species.includes(at) || at.includes(item.species);
+          if (at === '猴') return item.species.includes('猴') || item.strain.includes('猴');
+          if (at === '犬') return item.species.includes('犬') || item.strain.includes('犬');
+          if (at === '兔') return item.species.includes('兔') || item.strain.includes('兔');
+          if (at === '猪（小型猪）') return item.species.includes('猪') || item.strain.includes('猪');
+          return item.species.includes(at) || at.includes(item.species) || item.strain.includes(at);
         });
       });
     }
 
-    // 动物品系筛选 (C57BL/6J, BALB/cAnN, Sprague-Dawley, Wistar等)
+    // 动物品系筛选
     if (params.strains && params.strains.length > 0) {
       filtered = filtered.filter(item => {
-        return params.strains!.some(st => 
-          item.strain.toLowerCase().includes(st.toLowerCase()) || 
-          st.toLowerCase().includes(item.strain.toLowerCase())
+        return params.strains!.some(st =>
+          item.strain.toLowerCase() === st.toLowerCase() ||
+          (item.strain.toLowerCase().includes(st.toLowerCase()) && !['wistar'].includes(st.toLowerCase()))
         );
       });
     }
@@ -149,26 +219,58 @@ app.post('/api/pathology/search', (req, res) => {
       });
     }
 
-    // 周龄区间筛选 (8周及以下, 9-16周, 17-24周, 25-52周, 52周以上)
+    // 年龄区间筛选
     if (params.ageRanges && params.ageRanges.length > 0) {
       filtered = filtered.filter(item => {
         return params.ageRanges!.some(range => {
-          if (range === '8周及以下') return item.ageWeeks <= 8;
-          if (range === '9 - 16周') return item.ageWeeks >= 9 && item.ageWeeks <= 16;
-          if (range === '17 - 24周') return item.ageWeeks >= 17 && item.ageWeeks <= 24;
-          if (range === '25 - 52周') return item.ageWeeks >= 25 && item.ageWeeks <= 52;
-          if (range === '52周以上') return item.ageWeeks > 52;
+          if (range === '6–8周龄') return item.ageWeeks >= 6 && item.ageWeeks <= 8;
+          if (range === '7-9周龄') return item.ageWeeks >= 7 && item.ageWeeks <= 9;
+          if (range === '14-16周龄') return item.ageWeeks >= 14 && item.ageWeeks <= 16;
+          if (range === '18-24周龄') return item.ageWeeks >= 18 && item.ageWeeks <= 24;
+          if (range === '30-32周龄') return item.ageWeeks >= 30 && item.ageWeeks <= 32;
+          if (range === '12–16周龄（3-4月龄）') return item.ageWeeks >= 12 && item.ageWeeks <= 16;
+          if (range === '4–6月龄') return item.ageWeeks >= 16 && item.ageWeeks <= 27;
+          if (range === '5-9月龄') return item.ageWeeks >= 20 && item.ageWeeks <= 40;
+          if (range === '6-12月龄') return item.ageWeeks >= 24 && item.ageWeeks <= 52;
+          if (range === '2–4岁') return item.ageWeeks >= 104 && item.ageWeeks <= 208;
+          if (range === '5岁以上') return item.ageWeeks >= 260;
+          if (range === '12-18岁') return item.ageWeeks >= 624 && item.ageWeeks <= 936;
+          if (range === '8周龄及以下' || range === '8周及以下') return item.ageWeeks <= 8;
+          if (range === '9 - 16周龄' || range === '9 - 16周') return item.ageWeeks >= 9 && item.ageWeeks <= 16;
+          if (range === '17 - 24周龄' || range === '17 - 24周') return item.ageWeeks >= 17 && item.ageWeeks <= 24;
+          if (range === '25 - 52周龄' || range === '25 - 52周') return item.ageWeeks >= 25 && item.ageWeeks <= 52;
+          if (range === '52周龄以上' || range === '52周以上') return item.ageWeeks > 52;
           return true;
         });
       });
     }
 
-    // Age / Week age range filter
+    // Age range filter with unit conversion
+    const ageUnitFactorMin = params.ageUnit === 'year' ? 52 : params.ageUnit === 'month' ? 4 : 1;
+    const ageUnitFactorMax = params.ageUnit === 'year' ? 52 : params.ageUnit === 'month' ? 4.4 : 1;
     if (typeof params.ageMin === 'number') {
-      filtered = filtered.filter(item => item.ageWeeks >= params.ageMin!);
+      filtered = filtered.filter(item => item.ageWeeks >= params.ageMin! * ageUnitFactorMin);
     }
     if (typeof params.ageMax === 'number') {
-      filtered = filtered.filter(item => item.ageWeeks <= params.ageMax!);
+      filtered = filtered.filter(item => item.ageWeeks <= params.ageMax! * ageUnitFactorMax);
+    }
+
+    // 病变程度筛选
+    if (params.lesionSeverities && params.lesionSeverities.length > 0) {
+      filtered = filtered.filter(item =>
+        item.isLesion &&
+        !!item.lesionSeverity &&
+        params.lesionSeverities!.some(sev => item.lesionSeverity!.includes(sev))
+      );
+    }
+    if (params.lesionDistributions && params.lesionDistributions.length > 0) {
+      filtered = filtered.filter(item =>
+        item.isLesion &&
+        params.lesionDistributions!.some(dist =>
+          (item.lesionSeverity && item.lesionSeverity.includes(dist)) ||
+          (item.lesionDistribution && item.lesionDistribution.includes(dist))
+        )
+      );
     }
 
     // Sampling Date range filter

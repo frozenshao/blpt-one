@@ -10,8 +10,7 @@ import {
   OrganSystem, 
   ORGAN_SYSTEM_DATA, 
   ANIMAL_SPECIES_STRAIN_DATA,
-  TestArticleCategory, 
-  TEST_ARTICLE_DATA,
+  FORMULATION_TREE_DATA,
   ProjectType,
   ALL_PROJECT_TYPES
 } from '../types/pathology';
@@ -33,49 +32,67 @@ const ALL_SYSTEMS: OrganSystem[] = [
   '消化系统',
   '心血管系统',
   '内分泌系统',
-  '骨骼组织',
   '呼吸系统',
-  '生殖系统',
   '泌尿系统',
+  '雄性生殖系统',
+  '雌性生殖系统',
+  '免疫系统',
   '神经系统',
-  '淋巴系统'
+  '肌肉骨骼系统',
+  '皮肤及附属器',
+  '特殊感觉器官'
 ];
 
-// 动物种属
+// 动物种属 (按图片列表顺序)
 const ALL_ANIMAL_TYPES = [
   '小鼠',
   '大鼠',
-  '食蟹猴',
-  '比格犬',
-  '新西兰兔',
-  '小型猪',
-  '豚鼠',
-  '斑马鱼'
-];
-
-// 动物品系
-const ALL_STRAINS = [
-  'C57BL/6J',
-  'BALB/cAnN',
-  'Sprague-Dawley (SD)',
-  'Wistar 大鼠',
-  '食蟹猴 (Macaca fascicularis)',
-  '比格犬 (Beagle Dog)',
-  'NOD/SCID/IL2rγ-/- (NCG)',
-  'AB/Wildtype 斑马鱼'
+  '猴',
+  '犬',
+  '兔',
+  '猪（小型猪）',
+  '豚鼠'
 ];
 
 // 性别选项
 const ALL_GENDERS = ['雄性', '雌性'];
 
-// 周龄区间
-const ALL_AGE_RANGES = [
-  '8周及以下',
-  '9 - 16周',
-  '17 - 24周',
-  '25 - 52周',
-  '52周以上'
-];
+// 各类动物种属对应的快捷年龄区间 (按图片1)
+const AGE_RANGES_BY_SPECIES: Record<string, string[]> = {
+  '小鼠': ['6–8周龄', '7-9周龄', '18-24周龄'],
+  '大鼠': ['6–8周龄', '14-16周龄', '30-32周龄'],
+  '比格犬': ['4–6月龄', '6-12月龄', '5岁以上'],
+  '食蟹猴': ['2–4岁', '5岁以上', '12-18岁'],
+  '新西兰白兔': ['12–16周龄（3-4月龄）', '5-9月龄']
+};
+
+// 病变程度两类筛选条件
+const ALL_LESION_SEVERITY_LEVELS = ['轻微', '轻度', '中度', '重度', '严重'];
+const ALL_LESION_DISTRIBUTIONS = ['单灶性', '多灶性'];
+
+const resolveActiveAgeSpeciesKey = (animalTypes?: string[], strains?: string[]): string | null => {
+  const speciesSet = new Set<string>(animalTypes || []);
+  (strains || []).forEach(st => {
+    for (const [sp, list] of Object.entries(ANIMAL_SPECIES_STRAIN_DATA)) {
+      if (list.includes(st)) {
+        speciesSet.add(sp);
+      }
+    }
+  });
+
+  if (speciesSet.size !== 1) return null;
+  const singleSpecies = Array.from(speciesSet)[0];
+  if (singleSpecies === '小鼠') return '小鼠';
+  if (singleSpecies === '大鼠') return '大鼠';
+  if (singleSpecies === '犬') return '比格犬';
+  if (singleSpecies === '兔') return '新西兰白兔';
+  if (singleSpecies === '猴') {
+    if (strains?.includes('恒河猴') && !strains?.includes('食蟹猴')) return null;
+    if (strains?.includes('恒河猴')) return null;
+    return '食蟹猴';
+  }
+  return null;
+};
 
 export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
   filters,
@@ -89,19 +106,19 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     testArticle: true,
     gender: true,
     age: true,
-    pathology: true
+    pathology: true,
+    lesionSeverity: true
   });
 
   // Expanded animals within animal species/strain facet (二级联动)
   const [expandedAnimals, setExpandedAnimals] = useState<Record<string, boolean>>({
     '小鼠': true,
     '大鼠': false,
-    '食蟹猴': false,
-    '比格犬': false,
-    '新西兰兔': false,
-    '小型猪': false,
-    '豚鼠': false,
-    '斑马鱼': false
+    '猴': false,
+    '犬': false,
+    '兔': false,
+    '猪（小型猪）': false,
+    '豚鼠': false
   });
 
   // Expanded systems within system facet
@@ -109,19 +126,25 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     '消化系统': true,
     '心血管系统': false,
     '内分泌系统': false,
-    '骨骼组织': false,
     '呼吸系统': false,
-    '生殖系统': false,
     '泌尿系统': false,
+    '雄性生殖系统': false,
+    '雌性生殖系统': false,
+    '免疫系统': false,
     '神经系统': false,
-    '淋巴系统': false
+    '肌肉骨骼系统': false,
+    '皮肤及附属器': false,
+    '特殊感觉器官': false
   });
 
-  // Expanded test article categories (药品, 医疗器械, 化妆品)
-  const [expandedTestArticles, setExpandedTestArticles] = useState<Record<string, boolean>>({
-    '药品': true,
-    '医疗器械': false,
-    '化妆品': false
+  // Expanded 给药制剂 Level 1 (受试物, 溶媒, 佐剂) & Level 2 (药品)
+  const [expandedFormulationL1, setExpandedFormulationL1] = useState<Record<string, boolean>>({
+    '受试物': true,
+    '溶媒': false,
+    '佐剂': false
+  });
+  const [expandedFormulationL2, setExpandedFormulationL2] = useState<Record<string, boolean>>({
+    '药品': true
   });
 
   const toggleFacet = (facetKey: string) => {
@@ -136,8 +159,12 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     setExpandedSystems(prev => ({ ...prev, [sysName]: !prev[sysName] }));
   };
 
-  const toggleExpandedTestArticle = (catName: string) => {
-    setExpandedTestArticles(prev => ({ ...prev, [catName]: !prev[catName] }));
+  const toggleExpandedFormulationL1 = (l1Name: string) => {
+    setExpandedFormulationL1(prev => ({ ...prev, [l1Name]: !prev[l1Name] }));
+  };
+
+  const toggleExpandedFormulationL2 = (l2Name: string) => {
+    setExpandedFormulationL2(prev => ({ ...prev, [l2Name]: !prev[l2Name] }));
   };
 
   const collapseAllFacets = () => {
@@ -174,11 +201,15 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     const next = current.includes(at)
       ? current.filter(t => t !== at)
       : [...current, at];
-    const nextIsOnlyMouse = next.length === 1 && next[0] === '小鼠';
+    const nextAnimalTypes = next.length > 0 ? next : undefined;
+    const nextSpeciesKey = resolveActiveAgeSpeciesKey(nextAnimalTypes, filters.strains);
+    const allowedAgeRanges = nextSpeciesKey ? AGE_RANGES_BY_SPECIES[nextSpeciesKey] : [];
+    const nextAgeRanges = (filters.ageRanges || []).filter(r => allowedAgeRanges.includes(r));
+
     onFilterChange({
       ...filters,
-      animalTypes: next.length > 0 ? next : undefined,
-      ...(nextIsOnlyMouse ? {} : { ageRanges: undefined }),
+      animalTypes: nextAnimalTypes,
+      ageRanges: nextAgeRanges.length > 0 ? nextAgeRanges : undefined,
       page: 1
     });
   };
@@ -189,7 +220,17 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     const next = current.includes(st)
       ? current.filter(s => s !== st)
       : [...current, st];
-    onFilterChange({ ...filters, strains: next.length > 0 ? next : undefined, page: 1 });
+    const nextStrains = next.length > 0 ? next : undefined;
+    const nextSpeciesKey = resolveActiveAgeSpeciesKey(filters.animalTypes, nextStrains);
+    const allowedAgeRanges = nextSpeciesKey ? AGE_RANGES_BY_SPECIES[nextSpeciesKey] : [];
+    const nextAgeRanges = (filters.ageRanges || []).filter(r => allowedAgeRanges.includes(r));
+
+    onFilterChange({
+      ...filters,
+      strains: nextStrains,
+      ageRanges: nextAgeRanges.length > 0 ? nextAgeRanges : undefined,
+      page: 1
+    });
   };
 
   // 4. 系统/脏器类型切换
@@ -209,15 +250,47 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     onFilterChange({ ...filters, organs: next.length > 0 ? next : undefined, page: 1 });
   };
 
-  // 5. 受试物分类与亚类切换
-  const handleToggleTestArticleCat = (cat: TestArticleCategory) => {
-    const next = filters.testArticleCategory === cat ? undefined : cat;
-    onFilterChange({ ...filters, testArticleCategory: next, testArticleSubCategory: undefined, page: 1 });
+  // 5. 给药制剂三级联动切换 (一级栏目 -> 二级类别 -> 三级选项)
+  const handleToggleFormulationL1 = (l1: string) => {
+    const current = filters.formulationCategories || [];
+    const next = current.includes(l1)
+      ? current.filter(item => item !== l1)
+      : [...current, l1];
+    onFilterChange({
+      ...filters,
+      formulationCategories: next.length > 0 ? next : undefined,
+      page: 1
+    });
   };
 
-  const handleToggleTestArticleSubCat = (subCat: string) => {
-    const next = filters.testArticleSubCategory === subCat ? undefined : subCat;
-    onFilterChange({ ...filters, testArticleSubCategory: next, page: 1 });
+  const handleToggleFormulationL2 = (l2: string) => {
+    const current = filters.testArticleCategories
+      ? [...filters.testArticleCategories]
+      : (filters.testArticleCategory ? [filters.testArticleCategory] : []);
+    const next = current.includes(l2)
+      ? current.filter(item => item !== l2)
+      : [...current, l2];
+    onFilterChange({
+      ...filters,
+      testArticleCategory: undefined,
+      testArticleCategories: next.length > 0 ? next : undefined,
+      page: 1
+    });
+  };
+
+  const handleToggleFormulationL3 = (l3: string) => {
+    const current = filters.testArticleSubCategories
+      ? [...filters.testArticleSubCategories]
+      : (filters.testArticleSubCategory ? [filters.testArticleSubCategory] : []);
+    const next = current.includes(l3)
+      ? current.filter(item => item !== l3)
+      : [...current, l3];
+    onFilterChange({
+      ...filters,
+      testArticleSubCategory: undefined,
+      testArticleSubCategories: next.length > 0 ? next : undefined,
+      page: 1
+    });
   };
 
   // 6. 性别切换
@@ -229,7 +302,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     onFilterChange({ ...filters, genderOptions: next.length > 0 ? next : undefined, page: 1 });
   };
 
-  // 7. 周龄切换
+  // 7. 年龄切换
   const handleToggleAgeRange = (range: string) => {
     const current = filters.ageRanges || [];
     const next = current.includes(range)
@@ -238,7 +311,25 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     onFilterChange({ ...filters, ageRanges: next.length > 0 ? next : undefined, page: 1 });
   };
 
-  const isOnlyMouseSelected = filters.animalTypes?.length === 1 && filters.animalTypes[0] === '小鼠';
+  // 9. 病变程度切换（两类条件：程度分级 + 病灶分布）
+  const handleToggleLesionSeverity = (sev: string) => {
+    const current = filters.lesionSeverities || [];
+    const next = current.includes(sev)
+      ? current.filter(item => item !== sev)
+      : [...current, sev];
+    onFilterChange({ ...filters, lesionSeverities: next.length > 0 ? next : undefined, page: 1 });
+  };
+
+  const handleToggleLesionDistribution = (dist: string) => {
+    const current = filters.lesionDistributions || [];
+    const next = current.includes(dist)
+      ? current.filter(item => item !== dist)
+      : [...current, dist];
+    onFilterChange({ ...filters, lesionDistributions: next.length > 0 ? next : undefined, page: 1 });
+  };
+
+  const activeAgeSpeciesKey = resolveActiveAgeSpeciesKey(filters.animalTypes, filters.strains);
+  const currentQuickAgeRanges = activeAgeSpeciesKey ? (AGE_RANGES_BY_SPECIES[activeAgeSpeciesKey] || []) : [];
 
   return (
     <div className="w-full bg-white rounded-lg border border-slate-300 shadow-xs overflow-hidden select-none">
@@ -267,7 +358,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         </div>
       </div>
 
-      {/* 1. 项目名称 (支持多选) */}
+      {/* 1. 研究类型 (支持多选) */}
       <div className="border-b border-slate-200">
         <div 
           onClick={() => toggleFacet('project')}
@@ -275,14 +366,14 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         >
           <div className="flex items-center gap-2 font-bold text-xs">
             {openFacets.project ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>项目名称</span>
+            <span>研究类型</span>
           </div>
           <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
             {(filters.projectName || filters.projectNames?.length) ? (
               <button
                 type="button"
                 onClick={() => onFilterChange({ ...filters, projectName: undefined, projectNames: undefined, page: 1 })}
-                title="清空项目筛选"
+                title="清空研究类型筛选"
                 className="hover:text-white"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -483,17 +574,17 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                           const isOrgChecked = filters.organs?.includes(org) || false;
 
                           return (
-                            <div key={org} className="flex items-center justify-between py-0.5 hover:bg-slate-100/80 rounded px-1">
+                            <div key={`${sys}-${org}`} className="flex items-center justify-between py-0.5 hover:bg-slate-100/80 rounded px-1">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <input
                                   type="checkbox"
-                                  id={`filter-org-${org}`}
+                                  id={`filter-org-${sys}-${org}`}
                                   checked={isOrgChecked}
                                   onChange={() => handleToggleOrgan(org)}
                                   className="w-3 h-3 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
                                 />
                                 <label
-                                  htmlFor={`filter-org-${org}`}
+                                  htmlFor={`filter-org-${sys}-${org}`}
                                   className={`text-[11px] cursor-pointer truncate ${isOrgChecked ? 'text-[#18446b] font-bold' : 'text-slate-700'}`}
                                 >
                                   {org}
@@ -512,7 +603,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         )}
       </div>
 
-      {/* 5. 受试物 (名称已修改为“受试物”，支持展开收起，化妆品无二级分类) */}
+      {/* 5. 给药制剂 (三级筛选：一级栏目 -> 二级类别 -> 三级选项) */}
       <div className="border-b border-slate-200">
         <div 
           onClick={() => toggleFacet('testArticle')}
@@ -520,14 +611,28 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         >
           <div className="flex items-center gap-2 font-bold text-xs">
             {openFacets.testArticle ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>受试物</span>
+            <span>给药制剂</span>
           </div>
           <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
-            {(filters.testArticleCategory || filters.testArticleSubCategory) ? (
+            {(filters.formulationCategories?.length ||
+              filters.testArticleCategories?.length ||
+              filters.testArticleSubCategories?.length ||
+              filters.testArticleCategory ||
+              filters.testArticleSubCategory) ? (
               <button
                 type="button"
-                onClick={() => onFilterChange({ ...filters, testArticleCategory: undefined, testArticleSubCategory: undefined, page: 1 })}
-                title="清空受试物筛选"
+                onClick={() =>
+                  onFilterChange({
+                    ...filters,
+                    formulationCategories: undefined,
+                    testArticleCategories: undefined,
+                    testArticleSubCategories: undefined,
+                    testArticleCategory: undefined,
+                    testArticleSubCategory: undefined,
+                    page: 1
+                  })
+                }
+                title="清空给药制剂筛选"
                 className="hover:text-white"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -537,67 +642,112 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         </div>
 
         {openFacets.testArticle && (
-          <div className="p-2 space-y-2 bg-slate-50/50">
-            {(['药品', '医疗器械', '化妆品'] as TestArticleCategory[]).map((cat) => {
-              const isCatChecked = filters.testArticleCategory === cat;
-              const subTypes = TEST_ARTICLE_DATA[cat] || [];
-              const hasSub = subTypes.length > 0;
-              const isExpanded = expandedTestArticles[cat] || false;
+          <div className="p-2 space-y-1.5 bg-slate-50/50">
+            {FORMULATION_TREE_DATA.map((l1Item) => {
+              const isL1Checked = filters.formulationCategories?.includes(l1Item.name) || false;
+              const isL1Expanded = expandedFormulationL1[l1Item.name] || false;
 
               return (
-                <div key={cat} className="rounded border border-slate-200/80 bg-white overflow-hidden">
+                <div key={l1Item.name} className="rounded border border-slate-200/80 bg-white overflow-hidden">
+                  {/* 一级栏目 */}
                   <div className="flex items-center justify-between px-2 py-1.5 hover:bg-sky-50/60 transition-colors">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      {hasSub ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpandedTestArticle(cat)}
-                          className="p-0.5 text-slate-400 hover:text-slate-700 cursor-pointer"
-                        >
-                          {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
-                        </button>
-                      ) : (
-                        <div className="w-4" />
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleExpandedFormulationL1(l1Item.name)}
+                        className="p-0.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        {isL1Expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                      </button>
                       <input
                         type="checkbox"
-                        id={`filter-cat-${cat}`}
-                        checked={isCatChecked}
-                        onChange={() => handleToggleTestArticleCat(cat)}
+                        id={`filter-formulation-l1-${l1Item.name}`}
+                        checked={isL1Checked}
+                        onChange={() => handleToggleFormulationL1(l1Item.name)}
                         className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
                       />
                       <label
-                        htmlFor={`filter-cat-${cat}`}
-                        className={`text-xs font-bold cursor-pointer ${isCatChecked ? 'text-[#18446b]' : 'text-slate-800'}`}
+                        htmlFor={`filter-formulation-l1-${l1Item.name}`}
+                        className={`text-xs font-bold cursor-pointer ${isL1Checked ? 'text-[#18446b]' : 'text-slate-800'}`}
                       >
-                        {cat}
+                        {l1Item.name}
                       </label>
                     </div>
                   </div>
 
-                  {/* 仅在有二级分类且展开时显示二级分类 (化妆品无二级分类) */}
-                  {hasSub && isExpanded && (
-                    <div className="bg-slate-50/80 px-2 py-1 pl-6 space-y-1 border-t border-slate-100">
-                      {subTypes.map((sub) => {
-                        const isSubChecked = filters.testArticleSubCategory === sub;
+                  {/* 二级类别 */}
+                  {isL1Expanded && l1Item.children.length > 0 && (
+                    <div className="bg-slate-50/80 px-2 py-1 pl-5 space-y-1 border-t border-slate-100">
+                      {l1Item.children.map((l2Item) => {
+                        const isL2Checked =
+                          filters.testArticleCategories?.includes(l2Item.name) ||
+                          filters.testArticleCategory === l2Item.name ||
+                          false;
+                        const hasL3 = l2Item.children.length > 0;
+                        const isL2Expanded = expandedFormulationL2[l2Item.name] || false;
 
                         return (
-                          <div 
-                            key={sub}
-                            onClick={() => handleToggleTestArticleSubCat(sub)}
-                            className={`flex items-center justify-between py-1 px-1 rounded text-[11px] cursor-pointer transition-colors ${
-                              isSubChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <input
-                                type="checkbox"
-                                checked={isSubChecked}
-                                onChange={() => {}}
-                                className="w-3 h-3 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
-                              />
-                              <span className="truncate">{sub}</span>
+                          <div key={`${l1Item.name}-${l2Item.name}`} className="rounded border border-slate-200/60 bg-white/80 overflow-hidden">
+                            <div className="flex items-center justify-between px-1.5 py-1 hover:bg-slate-100/80 transition-colors">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {hasL3 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpandedFormulationL2(l2Item.name)}
+                                    className="p-0.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                                  >
+                                    {isL2Expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 text-slate-400" />}
+                                  </button>
+                                ) : (
+                                  <div className="w-4" />
+                                )}
+                                <input
+                                  type="checkbox"
+                                  id={`filter-formulation-l2-${l1Item.name}-${l2Item.name}`}
+                                  checked={isL2Checked}
+                                  onChange={() => handleToggleFormulationL2(l2Item.name)}
+                                  className="w-3 h-3 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                                />
+                                <label
+                                  htmlFor={`filter-formulation-l2-${l1Item.name}-${l2Item.name}`}
+                                  className={`text-[11px] cursor-pointer truncate ${isL2Checked ? 'text-[#18446b] font-bold' : 'text-slate-700 font-semibold'}`}
+                                >
+                                  {l2Item.name}
+                                </label>
+                              </div>
                             </div>
+
+                            {/* 三级选项 */}
+                            {hasL3 && isL2Expanded && (
+                              <div className="bg-slate-50 px-2 py-1 pl-6 space-y-0.5 border-t border-slate-100">
+                                {l2Item.children.map((l3Name) => {
+                                  const isL3Checked =
+                                    filters.testArticleSubCategories?.includes(l3Name) ||
+                                    filters.testArticleSubCategory === l3Name ||
+                                    false;
+
+                                  return (
+                                    <div
+                                      key={`${l2Item.name}-${l3Name}`}
+                                      onClick={() => handleToggleFormulationL3(l3Name)}
+                                      className={`flex items-center justify-between py-1 px-1.5 rounded text-[11px] cursor-pointer transition-colors ${
+                                        isL3Checked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <input
+                                          type="checkbox"
+                                          checked={isL3Checked}
+                                          onChange={() => {}}
+                                          className="w-3 h-3 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                                        />
+                                        <span className="truncate">{l3Name}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -663,7 +813,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         )}
       </div>
 
-      {/* 7. 周龄 (顺序与表格一致，支持自定义范围与快捷区间) */}
+      {/* 7. 年龄 (顺序与表格一致，支持自定义范围与快捷区间) */}
       <div className="border-b border-slate-200">
         <div 
           onClick={() => toggleFacet('age')}
@@ -671,14 +821,14 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
         >
           <div className="flex items-center gap-2 font-bold text-xs">
             {openFacets.age ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <span>周龄</span>
+            <span>年龄</span>
           </div>
           <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
             {(filters.ageRanges?.length || filters.ageMin !== undefined || filters.ageMax !== undefined) ? (
               <button
                 type="button"
                 onClick={() => onFilterChange({ ...filters, ageRanges: undefined, ageMin: undefined, ageMax: undefined, page: 1 })}
-                title="清空周龄筛选"
+                title="清空年龄筛选"
                 className="hover:text-white"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -689,10 +839,10 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
 
         {openFacets.age && (
           <div className="p-2 space-y-2 bg-slate-50/50">
-            {/* 自定义周龄范围输入 */}
+            {/* 自定义年龄范围输入 */}
             <div className="bg-white p-2 rounded border border-slate-200 shadow-2xs">
               <div className="text-[11px] font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
-                <span>自定义周龄范围</span>
+                <span>自定义年龄范围</span>
                 {(filters.ageMin !== undefined || filters.ageMax !== undefined) && (
                   <span className="text-[10px] text-blue-600 font-mono">已启用</span>
                 )}
@@ -702,7 +852,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                   type="number"
                   min="0"
                   max="200"
-                  placeholder="最小周龄"
+                  placeholder="最小年龄"
                   value={filters.ageMin !== undefined ? filters.ageMin : ''}
                   onChange={(e) => {
                     const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
@@ -715,7 +865,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                   type="number"
                   min="0"
                   max="200"
-                  placeholder="最大周龄"
+                  placeholder="最大年龄"
                   value={filters.ageMax !== undefined ? filters.ageMax : ''}
                   onChange={(e) => {
                     const val = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
@@ -723,14 +873,29 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                   }}
                   className="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:border-[#18446b] font-mono text-center"
                 />
-                <span className="text-slate-500 text-xs shrink-0 font-medium">周</span>
+                <select
+                  value={filters.ageUnit || 'week'}
+                  onChange={(e) =>
+                    onFilterChange({
+                      ...filters,
+                      ageUnit: e.target.value as 'week' | 'month' | 'year',
+                      page: 1
+                    })
+                  }
+                  aria-label="选择年龄单位"
+                  className="px-1.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:border-[#18446b] text-slate-700 font-medium shrink-0 cursor-pointer"
+                >
+                  <option value="week">周</option>
+                  <option value="month">月</option>
+                  <option value="year">年</option>
+                </select>
               </div>
             </div>
 
-            {/* 快捷周龄区间：仅在动物种属仅选择“小鼠”时显示 */}
-            {isOnlyMouseSelected && (
+            {/* 快捷年龄区间：仅在选中对应单一种属时显示对应的快捷分段 */}
+            {currentQuickAgeRanges.length > 0 && (
               <div className="space-y-1">
-                {ALL_AGE_RANGES.map((range) => {
+                {currentQuickAgeRanges.map((range) => {
                   const isChecked = filters.ageRanges?.includes(range) || false;
 
                   return (
@@ -760,7 +925,7 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
       </div>
 
       {/* 8. 组织状态 (顺序与表格一致) */}
-      <div>
+      <div className="border-b border-slate-200">
         <div 
           onClick={() => toggleFacet('pathology')}
           className="bg-[#18446b] text-white px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#1f5382] transition-colors"
@@ -817,6 +982,93 @@ export const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                 />
                 <span>病变组织</span>
               </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 9. 病变程度 (最下方新增：分为轻微/轻度/中度/重度/严重 与 单灶性/多灶性 两类条件) */}
+      <div>
+        <div 
+          onClick={() => toggleFacet('lesionSeverity')}
+          className="bg-[#18446b] text-white px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#1f5382] transition-colors"
+        >
+          <div className="flex items-center gap-2 font-bold text-xs">
+            {openFacets.lesionSeverity ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            <span>病变程度</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-sky-200" onClick={(e) => e.stopPropagation()}>
+            {(filters.lesionSeverities?.length || filters.lesionDistributions?.length) ? (
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filters, lesionSeverities: undefined, lesionDistributions: undefined, page: 1 })}
+                title="清空病变程度筛选"
+                className="hover:text-white"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {openFacets.lesionSeverity && (
+          <div className="p-2 space-y-2 bg-slate-50/50">
+            {/* 类别一：程度分级 */}
+            <div className="bg-white rounded border border-slate-200/80 p-1.5 space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 px-1.5 pt-0.5">
+                程度分级
+              </div>
+              {ALL_LESION_SEVERITY_LEVELS.map((sev) => {
+                const isChecked = filters.lesionSeverities?.includes(sev) || false;
+                return (
+                  <div
+                    key={sev}
+                    onClick={() => handleToggleLesionSeverity(sev)}
+                    className={`flex items-center justify-between px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
+                      isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                      />
+                      <span>{sev}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 类别二：分布特征 */}
+            <div className="bg-white rounded border border-slate-200/80 p-1.5 space-y-1">
+              <div className="text-[11px] font-semibold text-slate-500 px-1.5 pt-0.5">
+                分布特征
+              </div>
+              {ALL_LESION_DISTRIBUTIONS.map((dist) => {
+                const isChecked = filters.lesionDistributions?.includes(dist) || false;
+                return (
+                  <div
+                    key={dist}
+                    onClick={() => handleToggleLesionDistribution(dist)}
+                    className={`flex items-center justify-between px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
+                      isChecked ? 'bg-sky-100 text-[#18446b] font-bold' : 'hover:bg-slate-100 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-[#18446b] focus:ring-[#18446b] cursor-pointer"
+                      />
+                      <span>{dist}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

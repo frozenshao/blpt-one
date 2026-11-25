@@ -2,61 +2,72 @@ export type OrganSystem =
   | '消化系统' 
   | '心血管系统' 
   | '内分泌系统' 
-  | '骨骼组织' 
   | '呼吸系统' 
-  | '生殖系统' 
   | '泌尿系统' 
+  | '雄性生殖系统' 
+  | '雌性生殖系统' 
+  | '免疫系统' 
   | '神经系统' 
-  | '淋巴系统';
+  | '肌肉骨骼系统' 
+  | '皮肤及附属器' 
+  | '特殊感觉器官';
 
 export const ORGAN_SYSTEM_DATA: Record<OrganSystem, string[]> = {
-  '消化系统': ['肝脏', '胃(前胃/腺胃)', '十二指肠', '空肠/回肠', '盲肠', '结肠/直肠', '胰腺', '胆囊', '食管', '唾液腺(颌下腺/腮腺)'],
-  '心血管系统': ['心脏', '主动脉'],
-  '内分泌系统': ['甲状腺', '甲状旁腺', '肾上腺', '垂体'],
-  '骨骼组织': ['骨髓(胸骨/股骨)', '股骨/关节', '骨骼肌(股四头肌)', '皮肤及皮下组织'],
-  '呼吸系统': ['肺脏', '气管', '支气管', '鼻腔/鼻甲'],
-  '生殖系统': ['睾丸', '附睾', '前列腺', '精囊腺', '卵巢', '子宫', '阴道', '乳腺'],
-  '泌尿系统': ['肾脏', '输尿管', '膀胱'],
-  '神经系统': ['大脑', '小脑', '脑干', '脊髓', '坐骨神经', '哈氏腺(Harderian gland)'],
-  '淋巴系统': ['脾脏', '胸腺', '肠系膜淋巴结', '颌下淋巴结']
+  '消化系统': ['肝', '胃', '十二指肠', '空肠', '回肠', '盲肠', '结肠', '直肠', '胰腺', '胆囊', '食管', '唾液腺', '舌'],
+  '心血管系统': ['心脏', '主动脉', '动脉', '静脉'],
+  '内分泌系统': ['垂体', '甲状腺', '甲状旁腺', '肾上腺', '胰腺'],
+  '呼吸系统': ['鼻腔', '鼻咽', '喉', '气管', '支气管', '肺', '胸膜'],
+  '泌尿系统': ['肾', '输尿管', '膀胱', '尿道'],
+  '雄性生殖系统': ['睾丸', '附睾', '前列腺', '精囊', '凝固腺', '输精管', '阴茎'],
+  '雌性生殖系统': ['卵巢', '输卵管', '子宫', '子宫颈', '阴道'],
+  '免疫系统': ['骨髓', '脾', '胸腺', '淋巴结'],
+  '神经系统': ['脑', '脊髓', '周围神经', '神经节'],
+  '肌肉骨骼系统': ['骨', '关节', '骨骼肌', '肌腱'],
+  '皮肤及附属器': ['皮肤', '皮下组织', '乳腺'],
+  '特殊感觉器官': ['眼球', '视神经', '哈氏腺', '泪腺', '耳']
 };
 
 export const ANIMAL_SPECIES_STRAIN_DATA: Record<string, string[]> = {
   '小鼠': [
     'C57BL/6J',
+    'C57BL/6N',
     'BALB/c',
-    'ICR (CD-1)',
-    'KM (昆明小鼠)',
+    'ICR',
+    'CD-1',
+    '昆明小鼠（KM）',
     'NOD/SCID'
   ],
   '大鼠': [
-    'Sprague-Dawley (SD大鼠)',
-    'Wistar大鼠',
-    'F344大鼠 (Fischer 344)'
+    'Sprague Dawley（SD）',
+    'Wistar',
+    'Wistar Han',
+    'Fischer 344（F344）',
+    'Brown Norway（BN）',
+    'Lewis（LEW）'
   ],
-  '食蟹猴': [
-    '食蟹猴 (Macaca fascicularis)',
-    '恒河猴 (Macaca mulatta)'
+  '猴': [
+    '食蟹猴',
+    '恒河猴'
   ],
-  '比格犬': [
-    '比格犬 (Beagle Dog)'
+  '犬': [
+    '比格犬（Beagle）'
   ],
-  '新西兰兔': [
-    '新西兰白兔 (New Zealand White)'
+  '兔': [
+    '新西兰白兔（New Zealand White）'
+  ],
+  '猪（小型猪）': [
+    '哥廷根小型猪（Göttingen）',
+    '巴马小型猪',
+    '其他小型猪'
   ],
   '豚鼠': [
-    'Hartley豚鼠'
-  ],
-  '小型猪': [
-    '巴马小型猪',
-    '哥廷根小型猪'
-  ],
-  '斑马鱼': [
-    'AB品系野生型'
+    'Hartley（哈特利）'
   ]
 };
 
-export type TestArticleCategory = '药品' | '医疗器械' | '化妆品';
+export type FormulationLevel1 = '受试物' | '溶媒' | '佐剂';
+
+export type TestArticleCategory = '药品' | '医疗器械' | '化妆品' | '溶媒' | '空包LNP';
 
 export type TestArticleSubCategory = 
   | '抗体' 
@@ -71,29 +82,77 @@ export type TestArticleSubCategory =
   | '化妆品'
   | '化妆品原料/成品';
 
-export const TEST_ARTICLE_DATA: Record<TestArticleCategory, string[]> = {
+export interface FormulationLevel2Item {
+  name: TestArticleCategory;
+  children: string[];
+}
+
+export interface FormulationLevel1Item {
+  name: FormulationLevel1;
+  children: FormulationLevel2Item[];
+}
+
+export const FORMULATION_TREE_DATA: FormulationLevel1Item[] = [
+  {
+    name: '受试物',
+    children: [
+      {
+        name: '药品',
+        children: ['抗体', '细胞治疗产品', '基因治疗产品', '中药', '小分子化药']
+      },
+      {
+        name: '医疗器械',
+        children: []
+      },
+      {
+        name: '化妆品',
+        children: []
+      }
+    ]
+  },
+  {
+    name: '溶媒',
+    children: [
+      {
+        name: '溶媒',
+        children: []
+      }
+    ]
+  },
+  {
+    name: '佐剂',
+    children: [
+      {
+        name: '空包LNP',
+        children: []
+      }
+    ]
+  }
+];
+
+export const TEST_ARTICLE_DATA: Record<string, string[]> = {
   '药品': ['抗体', '细胞治疗产品', '基因治疗产品', '中药', '小分子化药'],
-  '医疗器械': ['医疗器械产品'],
-  '化妆品': []
+  '医疗器械': [],
+  '化妆品': [],
+  '溶媒': [],
+  '空包LNP': []
 };
 
 export type ProjectType = 
-  | '长期毒性试验' 
-  | '急性毒性试验' 
-  | '致癌性试验' 
-  | '生殖毒性试验' 
-  | '局部刺激试验' 
-  | '神经毒性试验' 
-  | '其他';
+  | '神经毒性试验'
+  | '局部刺激试验'
+  | '生殖与发育毒性试验'
+  | '致癌性试验'
+  | '急性毒性试验'
+  | '重复给药毒性试验';
 
 export const ALL_PROJECT_TYPES: ProjectType[] = [
-  '长期毒性试验',
-  '急性毒性试验',
-  '致癌性试验',
-  '生殖毒性试验',
-  '局部刺激试验',
   '神经毒性试验',
-  '其他'
+  '局部刺激试验',
+  '生殖与发育毒性试验',
+  '致癌性试验',
+  '急性毒性试验',
+  '重复给药毒性试验'
 ];
 
 export type OrganType = string;
@@ -171,14 +230,17 @@ export interface PathologySample {
   sampleCode: string; // e.g. PAT-2026-LV-008
   animalId: string; // 动物编号，支持同一动物多张切片关联 (如 ANIMAL-2026-M01)
   strain: string; // 品系 (如 C57BL/6J, BALB/c, Sprague-Dawley, Wistar, 恒河猴等)
-  experimentGroup: string; // 组别 (如 高脂模型组、溶媒对照组、给药高剂量组)
+  experimentGroup: string; // 实验组别 (如 溶媒对照组、LNP组、低剂量组、高剂量组)
   testArticle: string; // 受试物名称
-  testArticleCategory?: TestArticleCategory; // 药品 | 医疗器械 | 化妆品
+  formulation?: string; // 给药制剂展示名称 (如 溶媒、空包LNP、基因治疗产品，mRNA-LNP)
+  formulationCategory?: string; // 给药制剂一级栏目: 受试物 | 溶媒 | 佐剂
+  testArticleCategory?: TestArticleCategory; // 药品 | 医疗器械 | 化妆品 | 溶媒 | 空包LNP
   testArticleSubCategory?: TestArticleSubCategory; // 抗体 | 细胞治疗产品 等
-  projectName?: string; // 长期毒性试验 | 急性毒性试验 | 致癌性试验 等
+  projectName?: string; // 研究类型: 重复给药毒性试验 | 急性毒性试验 | 致癌性试验 等
   pathologyDiagnosis: string; // 病理诊断
   system?: OrganSystem | string; // 消化系统、心血管系统等
-  organ: string; // 具体脏器/腺体，如 肝脏、肾脏、甲状腺
+  organ: string; // 具体脏器/腺体，如 肝、肾、甲状腺
+  systemOrgans?: Array<{ system: string; organ: string }>; // 多个系统-脏器组合
   sliceType: SliceType;
   isLesion: boolean; // false = 正常组织, true = 病变组织
   lesionName: string;
@@ -187,6 +249,7 @@ export interface PathologySample {
   species: AnimalSpecies;
   gender: GenderType;
   ageWeeks: number;
+  ageDisplay?: string; // 年龄展示文案 (如 6–8周龄、7-9周龄、4–6月龄、2–4岁)
   samplingDate: string; // YYYY-MM-DD
   collectorName: string;
   pathologistSign: string;
@@ -204,12 +267,15 @@ export interface PathologySample {
 
 export interface PathologyFilterParams {
   keyword?: string;
-  projectName?: string; // '全部' | '长期毒性试验' | '急性毒性试验' | '致癌性试验' | '生殖毒性试验' | '局部刺激试验' | '神经毒性试验' | '其他'
-  projectNames?: string[]; // 多选项目名称
-  systems?: string[]; // 系统类型筛选 (9大系统)
-  organs?: string[]; // 对应具体脏器/腺体
-  testArticleCategory?: string; // 药品 | 医疗器械 | 化妆品
-  testArticleSubCategory?: string; // 抗体 | 细胞治疗产品 ...
+  projectName?: string; // 研究类型单选
+  projectNames?: string[]; // 多选研究类型
+  systems?: string[]; // 系统类型筛选 (12大系统)
+  organs?: string[]; // 对应具体器官/组织
+  formulationCategories?: string[]; // 给药制剂一级栏目: 受试物 | 溶媒 | 佐剂
+  testArticleCategories?: string[]; // 给药制剂二级类别: 药品 | 医疗器械 | 化妆品 | 溶媒 | 空包LNP
+  testArticleSubCategories?: string[]; // 给药制剂三级选项: 抗体 | 细胞治疗产品 | 基因治疗产品 | 中药 | 小分子化药
+  testArticleCategory?: string; // 兼容单选
+  testArticleSubCategory?: string; // 兼容单选
   sliceTypes?: SliceType[];
   isLesionFilter?: 'all' | 'normal' | 'lesion';
   species?: AnimalSpecies[];
@@ -217,9 +283,12 @@ export interface PathologyFilterParams {
   strains?: string[]; // 动物品系 (如 C57BL/6J, BALB/cAnN, Sprague-Dawley, Wistar等)
   genders?: GenderType[];
   genderOptions?: string[]; // 性别筛选: 雄性, 雌性
-  ageRanges?: string[]; // 周龄筛选范围
+  ageRanges?: string[]; // 年龄筛选范围
   ageMin?: number;
   ageMax?: number;
+  ageUnit?: 'week' | 'month' | 'year'; // 年龄自定义输入单位
+  lesionSeverities?: string[]; // 病变程度分级: 轻微, 轻度, 中度, 重度, 严重
+  lesionDistributions?: string[]; // 病灶分布: 单灶性, 多灶性
   dateStart?: string;
   dateEnd?: string;
   customFilters?: Array<{

@@ -86,28 +86,97 @@ export default function App() {
       console.warn('Search API fallback to local in-memory dataset:', err);
       // Fallback to local filter in memory
       let filtered = [...INITIAL_PATHOLOGY_SAMPLES];
+      const normalizeProject = (p?: string) => {
+        if (!p) return '';
+        if (p === '长期毒性试验') return '重复给药毒性试验';
+        if (p === '生殖毒性试验') return '生殖与发育毒性试验';
+        return p;
+      };
       if (currentFilters.projectNames && currentFilters.projectNames.length > 0) {
-        filtered = filtered.filter(s => s.projectName && currentFilters.projectNames!.includes(s.projectName));
+        filtered = filtered.filter(s =>
+          s.projectName && currentFilters.projectNames!.some(p => normalizeProject(s.projectName) === normalizeProject(p))
+        );
       } else if (currentFilters.projectName && currentFilters.projectName !== '全部') {
-        filtered = filtered.filter(s => s.projectName === currentFilters.projectName);
+        filtered = filtered.filter(s => normalizeProject(s.projectName) === normalizeProject(currentFilters.projectName));
       }
+
+      const systemMatches = (sampleSys: string | undefined, filterSys: string) => {
+        if (!sampleSys) return false;
+        if (sampleSys === filterSys || sampleSys.includes(filterSys)) return true;
+        if ((filterSys === '雄性生殖系统' || filterSys === '雌性生殖系统') && sampleSys === '生殖系统') return true;
+        if (filterSys === '免疫系统' && (sampleSys.includes('淋巴') || sampleSys.includes('免疫'))) return true;
+        if (filterSys === '肌肉骨骼系统' && sampleSys.includes('骨骼')) return true;
+        return false;
+      };
       if (currentFilters.systems && currentFilters.systems.length > 0) {
-        filtered = filtered.filter(s => s.system && currentFilters.systems!.includes(s.system));
+        filtered = filtered.filter(s =>
+          currentFilters.systems!.some(sys => systemMatches(s.system, sys)) ||
+          (s.systemOrgans && s.systemOrgans.some(so => currentFilters.systems!.some(sys => systemMatches(so.system, sys))))
+        );
       }
+
+      const ORGAN_SYNONYMS: Record<string, string[]> = {
+        '肝': ['肝脏'],
+        '胃': ['胃(前胃/腺胃)'],
+        '空肠': ['空肠/回肠'],
+        '回肠': ['空肠/回肠'],
+        '结肠': ['结肠/直肠'],
+        '直肠': ['结肠/直肠'],
+        '肺': ['肺脏'],
+        '肾': ['肾脏'],
+        '脾': ['脾脏'],
+        '脑': ['大脑', '小脑', '脑干'],
+        '骨': ['股骨/关节'],
+        '关节': ['股骨/关节'],
+        '骨髓': ['骨髓(胸骨/股骨)'],
+        '骨骼肌': ['骨骼肌(股四头肌)'],
+        '唾液腺': ['唾液腺(颌下腺/腮腺)'],
+        '哈氏腺': ['哈氏腺(Harderian gland)'],
+        '鼻腔': ['鼻腔/鼻甲'],
+        '周围神经': ['坐骨神经'],
+        '精囊': ['精囊腺'],
+        '皮肤': ['皮肤及皮下组织'],
+        '皮下组织': ['皮肤及皮下组织']
+      };
+      const organMatches = (sampleOrgan: string, filterOrgan: string) => {
+        if (sampleOrgan === filterOrgan) return true;
+        const syns = ORGAN_SYNONYMS[filterOrgan];
+        return Boolean(syns && syns.some(syn => sampleOrgan === syn || sampleOrgan.includes(syn)));
+      };
       if (currentFilters.organs && currentFilters.organs.length > 0) {
-        filtered = filtered.filter(s => 
-          currentFilters.organs!.some(org => 
-            s.organ === org || 
-            org.includes(s.organ) || 
-            s.organ.includes(org)
+        filtered = filtered.filter(s =>
+          currentFilters.organs!.some(org =>
+            organMatches(s.organ, org) ||
+            (s.systemOrgans && s.systemOrgans.some(so => organMatches(so.organ, org)))
           )
         );
       }
-      if (currentFilters.testArticleCategory && currentFilters.testArticleCategory !== '全部') {
-        filtered = filtered.filter(s => s.testArticleCategory === currentFilters.testArticleCategory);
-      }
-      if (currentFilters.testArticleSubCategory && currentFilters.testArticleSubCategory !== '全部') {
-        filtered = filtered.filter(s => s.testArticleSubCategory === currentFilters.testArticleSubCategory);
+
+      const selectedL1 = currentFilters.formulationCategories || [];
+      const selectedL2 = currentFilters.testArticleCategories?.length
+        ? currentFilters.testArticleCategories
+        : (currentFilters.testArticleCategory && currentFilters.testArticleCategory !== '全部' ? [currentFilters.testArticleCategory] : []);
+      const selectedL3 = currentFilters.testArticleSubCategories?.length
+        ? currentFilters.testArticleSubCategories
+        : (currentFilters.testArticleSubCategory && currentFilters.testArticleSubCategory !== '全部' ? [currentFilters.testArticleSubCategory] : []);
+      if (selectedL1.length > 0 || selectedL2.length > 0 || selectedL3.length > 0) {
+        filtered = filtered.filter(s => {
+          const itemL1 = s.formulationCategory || (
+            s.formulation === '溶媒' || s.testArticleCategory === '溶媒'
+              ? '溶媒'
+              : s.formulation === '空包LNP' || s.testArticleCategory === '空包LNP'
+              ? '佐剂'
+              : '受试物'
+          );
+          const itemL2 = s.testArticleCategory || (
+            s.formulation === '溶媒' ? '溶媒' : s.formulation === '空包LNP' ? '空包LNP' : ''
+          );
+          const itemL3 = s.testArticleSubCategory || '';
+          const matchL1 = selectedL1.length > 0 && selectedL1.includes(itemL1);
+          const matchL2 = selectedL2.length > 0 && selectedL2.includes(itemL2);
+          const matchL3 = selectedL3.length > 0 && selectedL3.includes(itemL3);
+          return matchL1 || matchL2 || matchL3;
+        });
       }
       if (currentFilters.isLesionFilter && currentFilters.isLesionFilter !== 'all') {
         if (currentFilters.isLesionFilter === 'normal') {
@@ -124,15 +193,19 @@ export default function App() {
           return currentFilters.animalTypes!.some(at => {
             if (at === '小鼠') return s.species.includes('小鼠');
             if (at === '大鼠') return s.species.includes('大鼠');
-            return s.species.includes(at) || at.includes(s.species);
+            if (at === '猴') return s.species.includes('猴') || s.strain.includes('猴');
+            if (at === '犬') return s.species.includes('犬') || s.strain.includes('犬');
+            if (at === '兔') return s.species.includes('兔') || s.strain.includes('兔');
+            if (at === '猪（小型猪）') return s.species.includes('猪') || s.strain.includes('猪');
+            return s.species.includes(at) || at.includes(s.species) || s.strain.includes(at);
           });
         });
       }
       if (currentFilters.strains && currentFilters.strains.length > 0) {
         filtered = filtered.filter(s => {
-          return currentFilters.strains!.some(st => 
-            s.strain.toLowerCase().includes(st.toLowerCase()) || 
-            st.toLowerCase().includes(s.strain.toLowerCase())
+          return currentFilters.strains!.some(st =>
+            s.strain.toLowerCase() === st.toLowerCase() ||
+            s.strain.toLowerCase().includes(st.toLowerCase()) && !['wistar'].includes(st.toLowerCase())
           );
         });
       }
@@ -142,20 +215,50 @@ export default function App() {
       if (currentFilters.ageRanges && currentFilters.ageRanges.length > 0) {
         filtered = filtered.filter(s => {
           return currentFilters.ageRanges!.some(range => {
-            if (range === '8周及以下') return s.ageWeeks <= 8;
-            if (range === '9 - 16周') return s.ageWeeks >= 9 && s.ageWeeks <= 16;
-            if (range === '17 - 24周') return s.ageWeeks >= 17 && s.ageWeeks <= 24;
-            if (range === '25 - 52周') return s.ageWeeks >= 25 && s.ageWeeks <= 52;
-            if (range === '52周以上') return s.ageWeeks > 52;
+            if (range === '6–8周龄') return s.ageWeeks >= 6 && s.ageWeeks <= 8;
+            if (range === '7-9周龄') return s.ageWeeks >= 7 && s.ageWeeks <= 9;
+            if (range === '14-16周龄') return s.ageWeeks >= 14 && s.ageWeeks <= 16;
+            if (range === '18-24周龄') return s.ageWeeks >= 18 && s.ageWeeks <= 24;
+            if (range === '30-32周龄') return s.ageWeeks >= 30 && s.ageWeeks <= 32;
+            if (range === '12–16周龄（3-4月龄）') return s.ageWeeks >= 12 && s.ageWeeks <= 16;
+            if (range === '4–6月龄') return s.ageWeeks >= 16 && s.ageWeeks <= 27;
+            if (range === '5-9月龄') return s.ageWeeks >= 20 && s.ageWeeks <= 40;
+            if (range === '6-12月龄') return s.ageWeeks >= 24 && s.ageWeeks <= 52;
+            if (range === '2–4岁') return s.ageWeeks >= 104 && s.ageWeeks <= 208;
+            if (range === '5岁以上') return s.ageWeeks >= 260;
+            if (range === '12-18岁') return s.ageWeeks >= 624 && s.ageWeeks <= 936;
+            if (range === '8周龄及以下' || range === '8周及以下') return s.ageWeeks <= 8;
+            if (range === '9 - 16周龄' || range === '9 - 16周') return s.ageWeeks >= 9 && s.ageWeeks <= 16;
+            if (range === '17 - 24周龄' || range === '17 - 24周') return s.ageWeeks >= 17 && s.ageWeeks <= 24;
+            if (range === '25 - 52周龄' || range === '25 - 52周') return s.ageWeeks >= 25 && s.ageWeeks <= 52;
+            if (range === '52周龄以上' || range === '52周以上') return s.ageWeeks > 52;
             return true;
           });
         });
       }
+      const ageUnitFactorMin = currentFilters.ageUnit === 'year' ? 52 : currentFilters.ageUnit === 'month' ? 4 : 1;
+      const ageUnitFactorMax = currentFilters.ageUnit === 'year' ? 52 : currentFilters.ageUnit === 'month' ? 4.4 : 1;
       if (typeof currentFilters.ageMin === 'number' && !isNaN(currentFilters.ageMin)) {
-        filtered = filtered.filter(s => s.ageWeeks >= currentFilters.ageMin!);
+        filtered = filtered.filter(s => s.ageWeeks >= currentFilters.ageMin! * ageUnitFactorMin);
       }
       if (typeof currentFilters.ageMax === 'number' && !isNaN(currentFilters.ageMax)) {
-        filtered = filtered.filter(s => s.ageWeeks <= currentFilters.ageMax!);
+        filtered = filtered.filter(s => s.ageWeeks <= currentFilters.ageMax! * ageUnitFactorMax);
+      }
+      if (currentFilters.lesionSeverities && currentFilters.lesionSeverities.length > 0) {
+        filtered = filtered.filter(s =>
+          s.isLesion &&
+          !!s.lesionSeverity &&
+          currentFilters.lesionSeverities!.some(sev => s.lesionSeverity!.includes(sev))
+        );
+      }
+      if (currentFilters.lesionDistributions && currentFilters.lesionDistributions.length > 0) {
+        filtered = filtered.filter(s =>
+          s.isLesion &&
+          currentFilters.lesionDistributions!.some(dist =>
+            (s.lesionSeverity && s.lesionSeverity.includes(dist)) ||
+            (s.lesionDistribution && s.lesionDistribution.includes(dist))
+          )
+        );
       }
       if (currentFilters.sliceTypes && currentFilters.sliceTypes.length > 0) {
         filtered = filtered.filter(s => currentFilters.sliceTypes!.includes(s.sliceType));
@@ -164,9 +267,14 @@ export default function App() {
         const q = currentFilters.keyword.toLowerCase();
         filtered = filtered.filter(s => 
           s.sampleCode.toLowerCase().includes(q) || 
+          (s.animalId && s.animalId.toLowerCase().includes(q)) ||
           s.organ.toLowerCase().includes(q) || 
           (s.system && s.system.toLowerCase().includes(q)) ||
+          (s.systemOrgans && s.systemOrgans.some(so => so.system.toLowerCase().includes(q) || so.organ.toLowerCase().includes(q))) ||
           s.testArticle.toLowerCase().includes(q) ||
+          (s.formulation && s.formulation.toLowerCase().includes(q)) ||
+          (s.experimentGroup && s.experimentGroup.toLowerCase().includes(q)) ||
+          (s.lesionName && s.lesionName.toLowerCase().includes(q)) ||
           s.pathologyDiagnosis.toLowerCase().includes(q) ||
           s.species.toLowerCase().includes(q)
         );

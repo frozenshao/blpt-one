@@ -12,7 +12,9 @@ import {
   AlertCircle,
   KeyRound,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { User } from '../types/user';
 import { getUsers, addUser, updateUser, deleteUser } from '../data/authService';
@@ -24,6 +26,8 @@ interface UserManagementViewProps {
 export const UserManagementView: React.FC<UserManagementViewProps> = ({ currentUser }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -175,6 +179,11 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ currentU
     );
   });
 
+  const totalUsers = filteredUsers.length;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* Toast Notification */}
@@ -205,7 +214,10 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ currentU
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="搜索用户名/姓名..."
             className="pl-8 pr-3 py-1.5 bg-white border border-[#bcd7ee] rounded-xl text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#0e3b66]/20 focus:border-[#0e3b66] w-48 sm:w-56"
           />
@@ -236,14 +248,14 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ currentU
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {filteredUsers.length === 0 ? (
+              {paginatedUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
                     未检索到符合条件的用户
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => {
+                paginatedUsers.map((u) => {
                   const isAdmin = u.role === 'admin';
                   const isBuiltinAdmin = u.username === 'admin';
 
@@ -320,6 +332,36 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ currentU
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* 表格翻页栏：显示“共x条”与翻页控件 */}
+        <div className="px-4 py-3 border-t border-[#bcd7ee]/60 bg-slate-50/70 flex items-center justify-between">
+          <span className="text-xs font-medium text-slate-600">
+            共{totalUsers}条
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => setCurrentPage(safePage - 1)}
+              title="上一页"
+              className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs font-mono text-slate-600 px-1">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => setCurrentPage(safePage + 1)}
+              title="下一页"
+              className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -15,6 +15,14 @@ import {
   Minimize2
 } from 'lucide-react';
 import { PathologySample } from '../types/pathology';
+import {
+  formatFormulationDisplay,
+  formatGenderDisplay,
+  formatLesionDiagnosis,
+  formatLesionSeverity,
+  formatSampleYearMonth,
+  formatSystemOrganDisplay
+} from '../utils/sampleFormatters';
 
 interface SampleDetailPageProps {
   sample: PathologySample;
@@ -40,6 +48,7 @@ interface DetailAnnotationItem {
 interface RelatedSliceItem {
   id: string;
   sampleCode: string;
+  animalId?: string;
   organ: string;
   system: string;
   isLesion: boolean;
@@ -54,11 +63,13 @@ interface RelatedSliceItem {
   strain: string;
   projectName: string;
   experimentGroup: string;
+  formulation?: string;
   testArticle: string;
   testArticleCategory: string;
   testArticleSubCategory?: string;
   gender: string;
   ageWeeks: number;
+  ageDisplay?: string;
 }
 
 const DETAIL_ANNOTATIONS: DetailAnnotationItem[] = [
@@ -103,36 +114,40 @@ const DETAIL_ANNOTATIONS: DetailAnnotationItem[] = [
 
 // 为用户指定的三条核心数据配置高质量的同动物/同组别关联切片
 const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
-  // 1. E02_Mou_C57_MA103_S02_Liv (C57小鼠 肝脏长毒 -> 关联同实验动物的肾脏与脾脏切片)
+  // 1. E02_Mou_C57_MA103_S02_Liv (C57小鼠 肝脏长毒 -> 关联同实验动物的肾与脾切片)
   'E02_Mou_C57_MA103_S02_Liv': [
     {
       id: 'rel-c57-01',
       sampleCode: 'E02_Mou_C57_MA103_S01_Kid',
-      organ: '肾脏',
+      animalId: 'MA103',
+      organ: '肾',
       system: '泌尿系统',
       isLesion: true,
       lesionName: '近端肾小管上皮空泡变性',
-      lesionSeverity: '轻度',
+      lesionSeverity: '多灶性, 轻度',
       pathologyDiagnosis: '近曲小管轻度脂质沉着伴微量蛋白管型',
       samplingDate: '2026-03-12',
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_kidney_1789719241512.jpg',
       imageUrl: '/images/pathology_slide_kidney_1789719241512.jpg',
-      species: 'C57BL/6 小鼠',
+      species: '小鼠',
       strain: 'C57BL/6J',
-      projectName: '长期毒性试验',
-      experimentGroup: '给药高剂量组',
+      projectName: '重复给药毒性试验',
+      experimentGroup: '高剂量组',
+      formulation: '基因治疗产品，mRNA-LNP',
       testArticle: '抗PD-1/VEGF双特异性抗体 (100mg/kg)',
       testArticleCategory: '药品',
       testArticleSubCategory: '抗体',
       gender: '雄性',
-      ageWeeks: 16
+      ageWeeks: 7,
+      ageDisplay: '6–8周龄'
     },
     {
       id: 'rel-c57-02',
       sampleCode: 'E02_Mou_C57_MA103_S03_Spl',
-      organ: '脾脏',
-      system: '淋巴系统',
+      animalId: 'MA103',
+      organ: '脾',
+      system: '免疫系统',
       isLesion: false,
       lesionName: '',
       lesionSeverity: '',
@@ -141,24 +156,27 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
       imageUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
-      species: 'C57BL/6 小鼠',
+      species: '小鼠',
       strain: 'C57BL/6J',
-      projectName: '长期毒性试验',
-      experimentGroup: '给药高剂量组',
+      projectName: '重复给药毒性试验',
+      experimentGroup: '高剂量组',
+      formulation: '基因治疗产品，mRNA-LNP',
       testArticle: '抗PD-1/VEGF双特异性抗体 (100mg/kg)',
       testArticleCategory: '药品',
       testArticleSubCategory: '抗体',
       gender: '雄性',
-      ageWeeks: 16
+      ageWeeks: 7,
+      ageDisplay: '6–8周龄'
     }
   ],
 
-  // 2. E03_NHP_CR_LG021_S02_Lng (食蟹猴/犬 肺切片 -> 关联同实验动物的气管与心脏切片)
+  // 2. E03_NHP_CR_LG021_S02_Lng (犬/食蟹猴 肺切片 -> 关联同实验动物的气管与心脏切片)
   'E03_NHP_CR_LG021_S02_Lng': [
     {
       id: 'rel-nhp-01',
       sampleCode: 'E03_NHP_CR_LG021_S01_Tra',
-      organ: '气管/支气管',
+      animalId: 'LG021',
+      organ: '气管',
       system: '呼吸系统',
       isLesion: false,
       lesionName: '',
@@ -168,71 +186,79 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_lung_1789719230402.jpg',
       imageUrl: '/images/pathology_slide_lung_1789719230402.jpg',
-      species: '比格犬',
-      strain: '比格犬 (Beagle Dog)',
-      projectName: '生殖毒性试验',
-      experimentGroup: 'AAV基因治疗产品高剂量组',
+      species: '犬',
+      strain: '比格犬（Beagle）',
+      projectName: '生殖与发育毒性试验',
+      experimentGroup: '高剂量组',
+      formulation: '基因治疗产品，mRNA-LNP',
       testArticle: 'AAV9靶向基因治疗载体制剂',
       testArticleCategory: '药品',
       testArticleSubCategory: '基因治疗产品',
       gender: '雌性',
-      ageWeeks: 36
+      ageWeeks: 36,
+      ageDisplay: '6-12月龄'
     },
     {
       id: 'rel-nhp-02',
       sampleCode: 'E03_NHP_CR_LG021_S03_Hrt',
+      animalId: 'LG021',
       organ: '心脏',
       system: '心血管系统',
       isLesion: true,
       lesionName: '心肌间质局灶轻微纤维化',
-      lesionSeverity: '轻微',
+      lesionSeverity: '单灶性, 轻微',
       pathologyDiagnosis: '左心室肌层局灶性胶原纤维沉积伴轻度微血管壁增厚',
       samplingDate: '2026-02-18',
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_heart_1789719246101.jpg',
       imageUrl: '/images/pathology_slide_heart_1789719246101.jpg',
-      species: '比格犬',
-      strain: '比格犬 (Beagle Dog)',
-      projectName: '生殖毒性试验',
-      experimentGroup: 'AAV基因治疗产品高剂量组',
+      species: '犬',
+      strain: '比格犬（Beagle）',
+      projectName: '生殖与发育毒性试验',
+      experimentGroup: '高剂量组',
+      formulation: '基因治疗产品，mRNA-LNP',
       testArticle: 'AAV9靶向基因治疗载体制剂',
       testArticleCategory: '药品',
       testArticleSubCategory: '基因治疗产品',
       gender: '雌性',
-      ageWeeks: 36
+      ageWeeks: 36,
+      ageDisplay: '6-12月龄'
     }
   ],
 
-  // 3. E02_Mou_C57_MA101_S01_Liv-Kid (人源PDX模型 肝肾联合浸润切片 -> 关联同动物的原发肺瘤与外周淋巴结切片)
+  // 3. E02_Mou_C57_MA101_S01_Liv-Kid (小鼠 肝肾联合切片 -> 关联同动物的肺与淋巴结切片)
   'E02_Mou_C57_MA101_S01_Liv-Kid': [
     {
       id: 'rel-pdx-01',
       sampleCode: 'E02_Mou_C57_MA101_S02_Lng',
-      organ: '肺脏',
+      animalId: 'MA101',
+      organ: '肺',
       system: '呼吸系统',
       isLesion: true,
       lesionName: '浸润性腺癌原发瘤灶',
-      lesionSeverity: '重度',
+      lesionSeverity: '多灶性, 重度',
       pathologyDiagnosis: '原发性异型腺管状瘤细胞密集排列，可见间质浸润与纤维反应',
       samplingDate: '2026-03-08',
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_lung_1789719230402.jpg',
       imageUrl: '/images/pathology_slide_lung_1789719230402.jpg',
-      species: '人源异种移植模型(PDX)',
-      strain: 'NOD/SCID/IL2rγ-/- (NCG)',
+      species: '小鼠',
+      strain: 'NOD/SCID',
       projectName: '致癌性试验',
-      experimentGroup: '靶向治疗致癌性监测组',
+      experimentGroup: 'LNP组',
+      formulation: '空包LNP',
       testArticle: '小分子激酶抑制剂 TKI-988',
-      testArticleCategory: '药品',
-      testArticleSubCategory: '小分子化药',
+      testArticleCategory: '空包LNP',
       gender: '雌性',
-      ageWeeks: 8
+      ageWeeks: 8,
+      ageDisplay: '7-9周龄'
     },
     {
       id: 'rel-pdx-02',
       sampleCode: 'E02_Mou_C57_MA101_S03_Lym',
+      animalId: 'MA101',
       organ: '淋巴结',
-      system: '淋巴系统',
+      system: '免疫系统',
       isLesion: false,
       lesionName: '',
       lesionSeverity: '',
@@ -241,15 +267,16 @@ const SPECIFIC_RELATED_SLICES: Record<string, RelatedSliceItem[]> = {
       sliceType: 'HE染色',
       thumbnailUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
       imageUrl: '/images/pathology_slide_spleen_1789719252319.jpg',
-      species: '人源异种移植模型(PDX)',
-      strain: 'NOD/SCID/IL2rγ-/- (NCG)',
+      species: '小鼠',
+      strain: 'NOD/SCID',
       projectName: '致癌性试验',
-      experimentGroup: '靶向治疗致癌性监测组',
+      experimentGroup: 'LNP组',
+      formulation: '空包LNP',
       testArticle: '小分子激酶抑制剂 TKI-988',
-      testArticleCategory: '药品',
-      testArticleSubCategory: '小分子化药',
+      testArticleCategory: '空包LNP',
       gender: '雌性',
-      ageWeeks: 8
+      ageWeeks: 8,
+      ageDisplay: '7-9周龄'
     }
   ]
 };
@@ -293,15 +320,13 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
   };
 
   const displayCode = sample.sampleCode.replace(/\.[^/.]+$/, '');
-  const genderText = sample.gender.includes('雌') ? '雌性' : '雄性';
-  const lesionNameText =
-    sample.isLesion && sample.lesionName && sample.lesionName !== '正常形态'
-      ? sample.lesionName
-      : '-';
-  const scoreMap: Record<number, string> = { 1: '轻微', 2: '轻度', 3: '中度', 4: '重度' };
-  const lesionSeverityText = sample.isLesion
-    ? (sample.lesionSeverity || scoreMap[sample.structuredDescription?.histopathologyScore] || '-')
-    : '-';
+  const genderText = formatGenderDisplay(sample.gender);
+  const systemOrganText = formatSystemOrganDisplay(sample);
+  const formulationText = formatFormulationDisplay(sample);
+  const ageText = sample.ageDisplay || `${sample.ageWeeks}周龄`;
+  const lesionNameText = formatLesionDiagnosis(sample);
+  const lesionSeverityText = formatLesionSeverity(sample);
+  const createdAtText = formatSampleYearMonth(sample.samplingDate);
 
   // 优先匹配当前样本是否有配置的专属关联切片数据
   const specificSlices = SPECIFIC_RELATED_SLICES[displayCode] || SPECIFIC_RELATED_SLICES[sample.sampleCode];
@@ -358,8 +383,10 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
         ...sample,
         id: item.id,
         sampleCode: item.sampleCode,
+        animalId: item.animalId || sample.animalId,
         organ: item.organ,
         system: item.system as any,
+        systemOrgans: [{ system: item.system, organ: item.organ }],
         isLesion: item.isLesion,
         lesionName: item.lesionName,
         lesionSeverity: item.lesionSeverity || '',
@@ -372,11 +399,13 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
         strain: item.strain || sample.strain,
         projectName: (item.projectName || sample.projectName) as any,
         experimentGroup: item.experimentGroup || sample.experimentGroup,
+        formulation: item.formulation || sample.formulation,
         testArticle: item.testArticle || sample.testArticle,
         testArticleCategory: (item.testArticleCategory || sample.testArticleCategory) as any,
         testArticleSubCategory: item.testArticleSubCategory || sample.testArticleSubCategory,
         gender: (item.gender || sample.gender) as any,
         ageWeeks: item.ageWeeks || sample.ageWeeks,
+        ageDisplay: item.ageDisplay || `${item.ageWeeks || sample.ageWeeks}周龄`,
         structuredDescription: {
           ...sample.structuredDescription,
           clinicalDiagnosis: item.pathologyDiagnosis
@@ -388,7 +417,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
   return (
     <div id="sample-detail-page" className="space-y-4 animate-in fade-in duration-200">
-      {/* 顶部操作条：仅展示“返回”按钮、项目名称和切片编号 */}
+      {/* 顶部操作条：仅展示“返回”按钮、研究类型和切片编号 */}
       <div className="bg-white border border-slate-200/90 rounded-xl shadow-xs px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
@@ -403,9 +432,9 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
           <div className="h-5 w-px bg-slate-200" />
 
-          {/* 项目名称：不用标签样式，直接显示内容 */}
+          {/* 研究类型：不用标签样式，直接显示内容 */}
           <span className="text-xs sm:text-sm font-bold text-[#102a48]">
-            {sample.projectName || '长期毒性试验'}
+            {sample.projectName || '重复给药毒性试验'}
           </span>
 
           {/* 切片编号 */}
@@ -601,42 +630,42 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
 
           {/* Tab 内容区 */}
           <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-3 text-xs max-h-[580px]">
-            {/* 1. 详细信息 Tab：展示指定10大字段 */}
+            {/* 1. 详细信息 Tab：与多维检索表格一致，展示除研究类型和切片编号外的11个字段 */}
             {activeTab === 'details' && (
               <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-                {/* 1) 动物种属 */}
+                {/* 1) 动物种属/品系 */}
                 <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物种属</span>
-                  <span className="font-bold text-slate-800 text-right">{sample.species}</span>
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物种属/品系</span>
+                  <div className="text-right">
+                    <div className="font-bold text-slate-800 leading-tight">{sample.species}</div>
+                    <div className="text-[11px] text-slate-500 leading-tight mt-0.5">{sample.strain || sample.species}</div>
+                  </div>
                 </div>
 
-                {/* 2) 动物品系 */}
+                {/* 2) 系统/脏器类型 */}
                 <div className="flex items-center justify-between p-2.5">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物品系</span>
-                  <span className="font-medium text-slate-800 text-right">{sample.strain || sample.species}</span>
-                </div>
-
-                {/* 3) 系统/脏器类型 */}
-                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
                   <span className="font-semibold text-slate-500 w-28 shrink-0">系统/脏器类型</span>
-                  <span className="font-bold text-slate-800 text-right">
-                    {sample.system || '消化系统'} / {sample.organ}
+                  <span className="font-medium text-slate-800 text-right max-w-[280px] leading-relaxed">
+                    {systemOrganText}
                   </span>
                 </div>
 
-                {/* 4) 受试物 */}
-                <div className="flex items-center justify-between p-2.5">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">受试物</span>
-                  <span className="font-semibold text-slate-800 text-right">
-                    {sample.testArticleCategory || '药品'}
-                    {sample.testArticleSubCategory ? ` / ${sample.testArticleSubCategory}` : ''}
-                  </span>
-                </div>
-
-                {/* 5) 组别 */}
+                {/* 3) 给药制剂 */}
                 <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">组别</span>
-                  <span className="font-medium text-slate-800 text-right">{sample.experimentGroup || '高剂量给药组'}</span>
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">给药制剂</span>
+                  <span className="font-medium text-slate-800 text-right">{formulationText}</span>
+                </div>
+
+                {/* 4) 实验组别 */}
+                <div className="flex items-center justify-between p-2.5">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">实验组别</span>
+                  <span className="font-semibold text-slate-800 text-right">{sample.experimentGroup || '高剂量组'}</span>
+                </div>
+
+                {/* 5) 动物号 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">动物号</span>
+                  <span className="font-mono font-semibold text-slate-800 text-right">{sample.animalId || '-'}</span>
                 </div>
 
                 {/* 6) 性别 */}
@@ -645,22 +674,14 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                   <span className="font-medium text-slate-800 text-right">{genderText}</span>
                 </div>
 
-                {/* 7) 周龄 */}
+                {/* 7) 年龄 */}
                 <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">周龄</span>
-                  <span className="font-mono font-bold text-slate-800 text-right">{sample.ageWeeks}周</span>
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">年龄</span>
+                  <span className="font-mono font-medium text-slate-800 text-right">{ageText}</span>
                 </div>
 
-                {/* 8) 病理诊断 */}
-                <div className="flex items-start justify-between p-2.5">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0 pt-0.5">病理诊断</span>
-                  <span className="font-medium text-slate-800 text-right leading-relaxed max-w-[280px]">
-                    {sample.pathologyDiagnosis || sample.structuredDescription.clinicalDiagnosis || '未见明显组织学病变或细胞异型性'}
-                  </span>
-                </div>
-
-                {/* 9) 组织状态 */}
-                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                {/* 8) 组织状态 */}
+                <div className="flex items-center justify-between p-2.5">
                   <span className="font-semibold text-slate-500 w-28 shrink-0">组织状态</span>
                   <span className="text-right">
                     {sample.isLesion ? (
@@ -677,22 +698,22 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                   </span>
                 </div>
 
-                {/* 10) 病变名称 */}
-                <div className="flex items-center justify-between p-2.5">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">病变名称</span>
+                {/* 9) 病变诊断 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">病变诊断</span>
                   <span className="font-medium text-slate-800 text-right">{lesionNameText}</span>
                 </div>
 
-                {/* 11) 病变程度 */}
-                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                {/* 10) 病变程度 */}
+                <div className="flex items-center justify-between p-2.5">
                   <span className="font-semibold text-slate-500 w-28 shrink-0">病变程度</span>
                   <span className="font-medium text-slate-800 text-right">{lesionSeverityText}</span>
                 </div>
 
-                {/* 12) 采集时间 */}
-                <div className="flex items-center justify-between p-2.5">
-                  <span className="font-semibold text-slate-500 w-28 shrink-0">采集时间</span>
-                  <span className="font-mono text-slate-700 text-right">{sample.samplingDate}</span>
+                {/* 11) 创建时间 */}
+                <div className="flex items-center justify-between p-2.5 bg-slate-50/50">
+                  <span className="font-semibold text-slate-500 w-28 shrink-0">创建时间</span>
+                  <span className="font-mono text-slate-700 text-right">{createdAtText}</span>
                 </div>
               </div>
             )}
@@ -786,7 +807,7 @@ export const SampleDetailPage: React.FC<SampleDetailPageProps> = ({
                           <div className="text-[11px] text-slate-600 flex items-center gap-1">
                             <span className="text-slate-400">系统/脏器类型:</span>
                             <span className="font-semibold text-slate-800">
-                              {rel.system ? `${rel.system} / ${rel.organ}` : rel.organ}
+                              {rel.system ? `${rel.system}/${rel.organ}` : rel.organ}
                             </span>
                           </div>
                         </div>

@@ -324,7 +324,7 @@ export const BackgroundLesionsSection: React.FC<BackgroundLesionsSectionProps> =
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">背景病变名称</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48]">背景性病变</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物种属</th>
                 {(selectedGender === '全部' || selectedGender === '雄性') && (
                   <th className="py-2.5 px-3 font-bold text-[#102a48]">雄性动物病变率</th>

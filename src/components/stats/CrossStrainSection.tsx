@@ -294,7 +294,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsLesionDropdownOpen(!isLesionDropdownOpen); }}
               className="flex items-center gap-1.5 bg-[#f0f6fc] border border-[#bcd7ee] px-3 py-1.5 rounded-lg text-xs text-[#102a48] cursor-pointer hover:border-[#a4c3de] transition-colors"
             >
-              <span className="font-medium text-[#102a48]/70">病变名称:</span>
+              <span className="font-medium text-[#102a48]/70">背景性病变:</span>
               <span className="font-semibold text-[#18446b] bg-white px-2 py-0.5 rounded border border-[#bcd7ee]">
                 {isAllLesionsSelected ? '全部' : selectedLesions.length === 1 ? selectedLesions[0] : `已选 ${selectedLesions.length} 项`}
               </span>
@@ -304,7 +304,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
             {isLesionDropdownOpen && (
               <div className="absolute z-20 top-full mt-1.5 right-0 w-64 bg-white border border-[#bcd7ee] rounded-xl shadow-lg p-2.5 space-y-2">
                 <div className="text-[11px] font-medium text-slate-500 flex items-center justify-between pb-1 border-b border-slate-100">
-                  <span>多选病变名称</span>
+                  <span>多选背景性病变</span>
                   <span className="text-[#18446b] font-bold">
                     {isAllLesionsSelected ? '全部' : `${selectedLesions.length}/${allLesionOptions.length}`}
                   </span>
@@ -444,7 +444,7 @@ export const CrossStrainSection: React.FC<CrossStrainSectionProps> = ({
           <table className="w-full text-xs text-left border-collapse">
             <thead className="bg-[#f0f6fc] text-[#102a48] font-bold border-b border-[#bcd7ee] sticky top-0 z-10 shadow-2xs">
               <tr>
-                <th className="py-2.5 px-3 font-bold text-[#102a48]">病变名称</th>
+                <th className="py-2.5 px-3 font-bold text-[#102a48]">背景性病变</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物性别</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物种属 A 及病变率</th>
                 <th className="py-2.5 px-3 font-bold text-[#102a48]">动物种属 B 及病变率</th>

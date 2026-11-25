@@ -234,18 +234,18 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         </h1>
       </div>
 
-      {/* 2) 筛选条件栏：项目名称下拉框与时间范围在同一行显示 */}
+      {/* 2) 筛选条件栏：研究类型下拉框与时间范围在同一行显示 */}
       <div className="bg-[#f0f6fc] border border-[#bcd7ee] p-4 rounded-xl shadow-2xs">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {/* 项目名称下拉框：不显示数据量 */}
+          {/* 研究类型下拉框：不显示数据量 */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#102a48] shrink-0">
-              项目名称:
+              研究类型:
             </span>
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              aria-label="选择项目名称"
+              aria-label="选择研究类型"
               className="bg-white border border-[#bcd7ee] rounded-lg px-3 py-1.5 text-xs font-semibold text-[#102a48] shadow-2xs focus:outline-hidden focus:ring-2 focus:ring-[#18446b] cursor-pointer min-w-[160px]"
             >
               {RESEARCH_PROJECTS.map((proj) => (
